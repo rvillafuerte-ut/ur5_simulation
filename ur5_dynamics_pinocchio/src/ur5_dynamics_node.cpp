@@ -280,7 +280,7 @@ private:
             double x_dot_d = 0.0, y_dot_d = 0.0, z_dot_d = 0.0;
             double x_ddot_d = 0.0, y_ddot_d = 0.0, z_ddot_d = 0.0;
 
-            int trayectoria = 2;
+            int trayectoria = 1;
             if(trayectoria==1){
                     // Trayectoria deseada
                 x_d = pos0.x() - 0.3 + 0.3 * exp_c0;

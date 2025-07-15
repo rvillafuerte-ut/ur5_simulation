@@ -362,6 +362,7 @@ class UR5eJointController : public rclcpp::Node {
         double qt_[4]; // Orientacion del haptic phantom  
         double x_des_[3];
         Eigen::Vector3d x_init_; // Para guardar la posición inicial
+        Eigen::Vector4d qt_init_; // Para guardar la posición inicial
         bool x_init_set_ = false;
         double t_traj_ = 0.0; // Tiempo para la trayectoria, independiente de dt
 
@@ -400,7 +401,7 @@ class UR5eJointController : public rclcpp::Node {
         // POSICIONES ARTICULARES DEL UR5
         void update_joint_positions(const sensor_msgs::msg::JointState::SharedPtr msg) {
             last_joint_state_ = msg;
-            bool implementacion = false; // Variable para determinar si se implementa la cinemática inversa
+            bool implementacion = true; // Variable para determinar si se implementa la cinemática inversa
             if (implementacion){
                 q_[0] = msg->position[5];           qd_[0] = msg->velocity[5];
                 q_[1] = msg->position[0];           qd_[1] = msg->velocity[0];
@@ -467,7 +468,7 @@ class UR5eJointController : public rclcpp::Node {
                 // Si no se ha alcanzado la posición inicial, no ejecutar el bucle de control
                 return;
             }
-            load_values_from_file(config_path, qt_,4, 29);
+            //load_values_from_file(config_path, qt_,4, 29);
             // try {
                 
             //     load_values_from_file(config_path, qt_,4, 29);
@@ -478,10 +479,20 @@ class UR5eJointController : public rclcpp::Node {
             if (!x_init_set_) {
                 pinocchio::forwardKinematics(*model, *data, q_, qd_);
                 pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
+                cout<<"obteniendo primeros valores"<<endl;
                 x_init_ = data->oMf[tool_frame_id].translation();
+                qt_init_= Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).coeffs(); // w, x, y, z
+                qt_[0]=qt_init_[3];
+                qt_[1]=qt_init_[0];
+                qt_[2]=qt_init_[1];
+                qt_[3]=qt_init_[2];
+                // Asegurarse de que qt_ esté en el orden correcto
                 x_init_set_ = true;
                 t_traj_ = 0.0;
             }
+            cout<<"qt: "<<qt_[0]<<" "<<qt_[1]<<" "<<qt_[2]<<" "<<qt_[3]<<endl;
+            cout<<"x_init: "<<x_init_[0]<<" "<<x_init_[1]<<" "<<x_init_[2]<<endl;
+            // 1. Calcular la trayectoria deseada
             double c0 = 0.1;
             
             double exp_c0 = std::exp(-c0 * t_traj_);
@@ -490,7 +501,7 @@ class UR5eJointController : public rclcpp::Node {
             double x_dot_d = 0.0, y_dot_d = 0.0, z_dot_d = 0.0;
             double x_ddot_d = 0.0, y_ddot_d = 0.0, z_ddot_d = 0.0;
 
-            int trayectoria = 2;
+            int trayectoria = 1;
             if(trayectoria==1){
                     // Trayectoria deseada
                 x_d = x_init_.x() - 0.3 + 0.3 * exp_c0;
@@ -611,7 +622,8 @@ class UR5eJointController : public rclcpp::Node {
             cout << "Posición deseada del UR5: " << x_des_[0] << ", " << x_des_[1] << ", " << x_des_[2] << std::endl;
             cout << "Posición actual del UR5: " << current_position.transpose() << std::endl;
             if (output_file_.is_open()) {
-                output_file_ << x_d << " " << y_d << " " << z_d << " " << current_position[0] << " " << current_position[1] << " " << current_position[2] << " " << endl;
+                output_file_ << x_d << " " << y_d << " " << z_d << " " << current_position[0] << " " << current_position[1] << " " << current_position[2] << " "
+                <<qt_[0]<<" "<<qt_[1]<<" "<<qt_[2]<<" "<<qt_[3]<<" "<< current_orientation.w()<<" "<<current_orientation.x()<<" "<<current_orientation.y()<<" "<<current_orientation.z()<<endl;
             }
             // J_anterior se actualiza dentro de impedanceControlPythonStyle, no aquí
             time_elapsed_ += control_dt; // Incrementa el tiempo transcurrido
