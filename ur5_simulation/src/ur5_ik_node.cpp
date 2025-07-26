@@ -300,7 +300,7 @@ class UR5eJointController : public rclcpp::Node {
                 x_des[1] = (x_init[1]- (r_[0]-r_initial_geo[0])*escala);
                 x_des[2] = (r_[2]-r_initial_geo[2])*escala + x_init[2];
             }else {                
-                x_des[0] = x_init[0] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_); //-0.10912;//x_init[0] + 0.1 * cos(2 * PI * 0.5 * time_elapsed_); // X_BASE + AMPLITUDE * cos(2 * PI * FREQUENCY * time_elapsed_)
+                x_des[0] = x_init[0] + 0.1 * cos(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_); //-0.10912;//x_init[0] + 0.1 * cos(2 * PI * 0.5 * time_elapsed_); // X_BASE + AMPLITUDE * cos(2 * PI * FREQUENCY * time_elapsed_)
                 x_des[1] = x_init[1] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_); //0.9479;//x_init[1] + 0.1 * sin(2 * PI * 0.5 * time_elapsed_);                                           // Y_CONST
                 x_des[2] = x_init[2] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_);//0.187537;//x_init[2];//.5 + 0.1 * sin(2 * PI * 0.5 * time_elapsed_)                                          // Z_CONST
 

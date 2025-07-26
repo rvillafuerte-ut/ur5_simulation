@@ -37,7 +37,7 @@ def leer_joints_ur(filename):
     return np.array(joints)
 
 
-ruta_base = '/home/david/tesis_ws/install/ur5_simulation/share/ur5_simulation/launch/'
+ruta_base = '/home/david/workspaces/ur_gz/src/ur_simulation_gz/ur_simulation_gz/launch/'
 
 haptic_pos, haptic_ori = leer_haptic(ruta_base + 'output_data.txt')
 joint_pos = leer_joints_ur(ruta_base + 'output_data3.txt')

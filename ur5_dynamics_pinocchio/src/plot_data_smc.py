@@ -1,8 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 14}) # Establece el tamaño de fuente global a 12
+from mpl_toolkits.mplot3d import Axes3D  # ← AGREGAR ESTA LÍNEA
 
-data = np.loadtxt('/tmp/ur5_log.txt', skiprows=1)
+data = np.loadtxt('ur5_log_1.txt', skiprows=1)
+
+plt.rcParams.update({'font.size': 14}) # Establece el tamaño de fuente global a 12
+# leer datos de un archivo .txt con format ###  ###  ###, ###  ###  ###, ###
+
+
+
+
 
 t = data[:,0]
 # Comandos y actuales
@@ -24,6 +31,20 @@ ori_error = data[:,37:40]
 v_cart_actual = data[:,40:46]
 v_cart_desired = data[:,46:52]
 tau = data[:,52:58]
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.plot(p_act[:,0], p_act[:,1], p_act[:,2], label='Trayectoria Actual', color='g')
+ax.plot(p_traj[:,0], p_traj[:,1], p_traj[:,2], label='Trayectoria Deseada', color='b', linestyle='--')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+ax.set_title('Trayectoria de UR5')
+ax.legend()
+ax.grid(True)
+plt.show()
+
+
 
 plt.figure(figsize=(12, 10)) # Adjust figure size for multiple subplots
 
@@ -123,3 +144,7 @@ plt.legend(['u1','u2','u3','u4','u5','u6'])
 plt.grid()
 plt.show()
 
+print("Error min absoluto", min(abs(p_act[:,0] - p_traj[:,0]))," ", min(abs(p_act[:,1] - p_traj[:,1])), " ", min(abs(p_act[:,2] - p_traj[:,2])))
+print("Error max absoluto", max(abs(p_act[:,0] - p_traj[:,0]))," ", max(abs(p_act[:,1] - p_traj[:,1])), " ", max(abs(p_act[:,2] - p_traj[:,2])))
+#error promedio
+print("Error promedio", np.mean(abs(p_act[:,0] - p_traj[:,0]))," ", np.mean(abs(p_act[:,1] - p_traj[:,1])), " ", np.mean(abs(p_act[:,2] - p_traj[:,2])))  
