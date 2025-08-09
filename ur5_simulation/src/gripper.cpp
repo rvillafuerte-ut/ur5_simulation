@@ -3,6 +3,9 @@
 bool boton= false; // Variable global para el botón gris
 bool apretado = false; // Variable para controlar el estado del botón
 
+
+
+
 class PhantomButtonSubscriber : public rclcpp::Node
 {
 public:

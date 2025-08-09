@@ -380,7 +380,7 @@ class UR5eJointController : public rclcpp::Node {
         double B[6];
         double control_loop_time[1]; 
         int ur5_time = 0.01;
-        string control_topic = "/scaled_joint_trajectory_controller/joint_trajectory";
+        string control_topic = "/joint_trajectory_controller/joint_trajectory";
         sensor_msgs::msg::JointState::SharedPtr last_joint_state_;    
         rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr joint_trajectory_pub_;
         rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subscription_;
@@ -401,7 +401,7 @@ class UR5eJointController : public rclcpp::Node {
         // POSICIONES ARTICULARES DEL UR5
         void update_joint_positions(const sensor_msgs::msg::JointState::SharedPtr msg) {
             last_joint_state_ = msg;
-            bool implementacion = true; // Variable para determinar si se implementa la cinemática inversa
+            bool implementacion = false; // Variable para determinar si se implementa la cinemática inversa
             if (implementacion){
                 q_[0] = msg->position[5];           qd_[0] = msg->velocity[5];
                 q_[1] = msg->position[0];           qd_[1] = msg->velocity[0];
@@ -501,7 +501,7 @@ class UR5eJointController : public rclcpp::Node {
             double x_dot_d = 0.0, y_dot_d = 0.0, z_dot_d = 0.0;
             double x_ddot_d = 0.0, y_ddot_d = 0.0, z_ddot_d = 0.0;
 
-            int trayectoria = 1;
+            int trayectoria = 2;
             if(trayectoria==1){
                     // Trayectoria deseada
                 x_d = x_init_.x() - 0.3 + 0.3 * exp_c0;
@@ -610,7 +610,7 @@ class UR5eJointController : public rclcpp::Node {
             RCLCPP_INFO(this->get_logger(), "Enviando posición: %.4f %.4f %.4f %.4f %.4f %.4f",
                         q_solution[0], q_solution[1], q_solution[2], q_solution[3], q_solution[4], q_solution[5]);
             point.positions = {q_solution[0], q_solution[1], q_solution[2], q_solution[3], q_solution[4], q_solution[5]};
-            point.time_from_start = rclcpp::Duration::from_seconds(control_dt*10); // El tiempo de control
+            point.time_from_start = rclcpp::Duration::from_seconds(0.01); // El tiempo de control
             trajectory_msg.points.push_back(point);
             joint_trajectory_pub_->publish(trajectory_msg);
             //comparando x_des con la posición actual del UR5

@@ -87,7 +87,7 @@ class UR5eJointController : public rclcpp::Node {
         double qt_init_ur5[4];
         double qt_init_geo[4];
         int control_loop_time = 1; 
-        int ur5_time;
+        double ur5_time;
         double max_iteraciones[1];
         double alpha[1];
         double controlador[1];
@@ -278,7 +278,7 @@ class UR5eJointController : public rclcpp::Node {
             Eigen::AngleAxisd aa(quat_trans_geo);
             double angle = aa.angle();
             Eigen::Vector3d axis = aa.axis();
-            axis.x() = -axis.x();
+            //axis.x() = -axis.x();
             //axis.y() = -axis.y();
 
             // Escalar el ángulo (por ejemplo, a la mitad)
@@ -316,8 +316,8 @@ class UR5eJointController : public rclcpp::Node {
             
             // guarda la posicion del haptico en el archivo
             if (output_file_.is_open()) {
-                output_file_ << "Haptic Position: " << r_[0] << " " << r_[1] << " " << r_[2] << " ";
-                output_file_ << "Haptic Orientation (quaternion): " << quat_trans_geo.w() << " " << quat_trans_geo.x() << " " << quat_trans_geo.y() << " " << quat_trans_geo.z() << "\n";
+                output_file_ << r_[0] << " " << r_[1] << " " << r_[2] << " ";
+                output_file_ <<   quat_trans_geo.w() << " " << quat_trans_geo.x() << " " << quat_trans_geo.y() << " " << quat_trans_geo.z() << "\n";
 
             }
 
