@@ -47,12 +47,11 @@ using namespace std;
 
 
 
-// variables globales
-
-bool orientacion = false;
-bool implementacion = false;
-bool geomagic = false;
-std::string control_topic = "";
+// Definición de variables globales
+extern bool orientacion;
+extern bool implementacion;
+extern bool geomagic;
+extern std::string control_topic;
 
 
 

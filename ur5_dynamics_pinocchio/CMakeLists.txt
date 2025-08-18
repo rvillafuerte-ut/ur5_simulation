@@ -20,7 +20,7 @@ find_package(std_msgs REQUIRED)     # Nuevo
 find_package(Eigen3 3.4 REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(ament_index_cpp REQUIRED)
-find_package(yaml-cpp REQUIRED)
+find_package(yaml-cpp REQUIRED) 
 
 # Configuración de include
 include_directories(

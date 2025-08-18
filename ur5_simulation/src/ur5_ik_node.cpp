@@ -1,5 +1,17 @@
-
 #include "functions.hpp"
+
+// Definición de variables globales
+bool implementacion = false;
+bool geomagic = false;
+bool orientacion = false;
+std::string control_topic = "";
+
+// Definición de la plantilla para obtener el tamaño de arrays estáticos
+template<typename T, std::size_t N>
+constexpr std::size_t array_length(T(&)[N]) {
+    return N;
+}
+
 string ur = "";
 
 class UR5eJointController : public rclcpp::Node {
@@ -13,25 +25,27 @@ class UR5eJointController : public rclcpp::Node {
             
             //llama constantes de config
             try {
-                load_values_from_file(config_path, q_init, 6, 7);       // Leer la 7ma línea para q_init del UR5
-                load_values_from_file(config_path, controlador, 1, 35);       // Leer la 7ma línea para q_init del UR5
-                load_values_from_file(config_path, qt_init_geo, 4, 11);       // Leer la 1va línea para qt_init del GeomagicTouch
+                load_values_from_file(config_path, controlador, 1, 35);       // Leer controlador
+                load_values_from_file(config_path, qt_init_geo, 4, 11);       // Leer qt_init del GeomagicTouch
+                // Cargar parámetros una sola vez
+                load_values_from_file(config_path, max_iteraciones, 1, 18);
+                load_values_from_file(config_path, alpha, 1, 16);
             } catch (const std::exception &e) {
                 cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
             }
             try {
-                
-            if (controlador[0] == 1) {
-                control_loop_time = 10; // 1 segundo
-                ur5_time = 0.1; // 100 milisegundos
-            } else if (controlador[0] == 2) {
-                control_loop_time = 1; // 1 milisegundo
-                ur5_time = 0.01; // 100 milisegundos
-            } else if (controlador[0] == 3) {
-                control_loop_time = 1; // 1 segundo
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "Controlador no válido. Debe ser 1, 2 o 3.");
-            }
+                if (controlador[0] == 1) {
+                    control_loop_time = 10; // 10 ms
+                    ur5_time = 0.1; // 100 ms
+                } else if (controlador[0] == 2) {
+                    control_loop_time = 1; // 1 ms
+                    ur5_time = 0.01; // 10 ms
+                } else if (controlador[0] == 3) {
+                    control_loop_time = 1; // 1 ms
+                    ur5_time = 0.01; // 10 ms
+                } else {
+                    RCLCPP_ERROR(this->get_logger(), "Controlador no válido. Debe ser 1, 2 o 3.");
+                }
             } catch (const std::exception &e) {
                 cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
             }
@@ -42,20 +56,21 @@ class UR5eJointController : public rclcpp::Node {
             // Publicador para enviar trayectorias
             joint_trajectory_pub_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(control_topic, 10);
     
-            // Suscriptor para leer el estado articular actual
+            // Suscriptores
             subscription_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 10, std::bind(&UR5eJointController::update_joint_positions, this, std::placeholders::_1));            
-                // Suscriptor para leer la posición cartesiana del haptic phantom
             subscription_haptic_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("/phantom/pose", 10, std::bind(&UR5eJointController::pose_callback, this, std::placeholders::_1));
             subscription_phantom_joints_ = this->create_subscription<sensor_msgs::msg::JointState>("/phantom/joint_states", 10, std::bind(&UR5eJointController::phantom_joint_states_callback, this, std::placeholders::_1));
             subscription_phantom_button_ = this->create_subscription<omni_msgs::msg::OmniButtonEvent>( "/phantom/button",    10,  std::bind(&UR5eJointController::button_callback, this, std::placeholders::_1));
-            // Temporizador para calcular y publicar nuevas posiciones articulares
-            timer2_ = this->create_wall_timer(std::chrono::seconds(1),std::bind(&UR5eJointController::posicion_inicial, this));
-            timer_ = this->create_wall_timer( std::chrono::milliseconds(control_loop_time), std::bind(&UR5eJointController::control_loop, this));
+            
+            // Solo el temporizador de control (eliminar timer2_)
+            timer_ = this->create_wall_timer(std::chrono::milliseconds(control_loop_time), std::bind(&UR5eJointController::control_loop, this));
         }
     
     private:
         bool posicion_inicial_alcanzada_ = false; // Bandera para sincronización
         bool capturar_pose_inicial_ = false; // Bandera para capturar pose inicial
+        bool pose_inicial_capturada_ = false;  // Nueva bandera para primera pose
+        bool geo_pose_capturada_ = false;      // Pose inicial del Geomagic capturada
         double time_elapsed_;
         double previous_error_[3] = {0, 0, 0}; // Error anterior
         double error_[3] = {0, 0, 0}; // Error actual
@@ -87,7 +102,7 @@ class UR5eJointController : public rclcpp::Node {
         double qt_init_ur5[4];
         double qt_init_geo[4];
         int control_loop_time = 1; 
-        double ur5_time;
+        double ur5_time = 0.01;  // Cambiar a double
         double max_iteraciones[1];
         double alpha[1];
         double controlador[1];
@@ -100,7 +115,7 @@ class UR5eJointController : public rclcpp::Node {
         rclcpp::Subscription<omni_msgs::msg::OmniButtonEvent>::SharedPtr subscription_phantom_button_;
 
         rclcpp::TimerBase::SharedPtr timer_;
-        rclcpp::TimerBase::SharedPtr timer2_;
+        // Eliminar timer2_
         std::unique_ptr<pinocchio::Model> model; // declarar puntero único para el modelo
         std::unique_ptr<pinocchio::Data> data; // declarar puntero único para los datos
         pinocchio::FrameIndex tool_frame_id; 
@@ -132,7 +147,7 @@ class UR5eJointController : public rclcpp::Node {
         // POSICIONES ARTICULARES DEL UR5
         void update_joint_positions(const sensor_msgs::msg::JointState::SharedPtr msg) {
             last_joint_state_ = msg;
-            //bool implementacion = false; // Variable para determinar si se implementa la cinemática inversa
+            
             if (implementacion){
                 q_[0] = msg->position[5];           qd_[0] = msg->velocity[5];
                 q_[1] = msg->position[0];           qd_[1] = msg->velocity[0];
@@ -140,18 +155,47 @@ class UR5eJointController : public rclcpp::Node {
                 q_[3] = msg->position[2];           qd_[3] = msg->velocity[2];
                 q_[4] = msg->position[3];           qd_[4] = msg->velocity[3];
                 q_[5] = msg->position[4];           qd_[5] = msg->velocity[4];
-            }
-            else{
+            } else {
                 for (int i = 0; i < 6; ++i) {
                     q_[i] = msg->position[i];
                     qd_[i] = msg->velocity[i];
-
                 }
             }
-            // Imprimir las posiciones articulares
-            //RCLCPP_INFO(this->get_logger(), "Posiciones articulares: %.4f %.4f %.4f %.4f %.4f %.4f",   q_[0], q_[1], q_[2], q_[3], q_[4], q_[5]);
-            // Imprimir las velocidades articulares
-            //RCLCPP_INFO(this->get_logger(), "Velocidades articulares: %.4f %.4f %.4f %.4f %.4f %.4f",  qd_[0], qd_[1], qd_[2], qd_[3], qd_[4], qd_[5]);
+
+            // Capturar pose inicial automáticamente en la primera recepción
+            if (!pose_inicial_capturada_) {
+                // Copiar posiciones actuales como posición inicial
+                for (int i = 0; i < 6; ++i) {
+                    q_init[i] = q_[i];
+                }
+                
+                // Calcular pose cartesiana inicial con FK
+                pinocchio::forwardKinematics(*model, *data, q_);
+                pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
+                
+                x_init[0] = data->oMf[tool_frame_id].translation()[0];
+                x_init[1] = data->oMf[tool_frame_id].translation()[1];
+                x_init[2] = data->oMf[tool_frame_id].translation()[2];
+                
+                qt_init_ur5[0] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).w();
+                qt_init_ur5[1] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).x();
+                qt_init_ur5[2] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).y();
+                qt_init_ur5[3] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).z();
+                
+                pose_inicial_capturada_ = true;
+                posicion_inicial_alcanzada_ = true; // Habilitar control inmediatamente
+                
+                if (geomagic) {
+                    capturar_pose_inicial_ = true;  // Habilitar captura de pose del Geomagic
+                }
+                
+                RCLCPP_INFO(this->get_logger(), "Pose inicial capturada desde /joint_states:");
+                RCLCPP_INFO(this->get_logger(), "q_init: %.3f %.3f %.3f %.3f %.3f %.3f", 
+                           q_init[0], q_init[1], q_init[2], q_init[3], q_init[4], q_init[5]);
+                RCLCPP_INFO(this->get_logger(), "x_init: %.3f %.3f %.3f", x_init[0], x_init[1], x_init[2]);
+                cout << "x_init: " << x_init[0] << " " << x_init[1] << " " << x_init[2] << endl;
+                cout << "qt_init_ur5: " << qt_init_ur5[0] << " " << qt_init_ur5[1] << " " << qt_init_ur5[2] << " " << qt_init_ur5[3] << endl;
+            }
         }
         
         void phantom_joint_states_callback(const sensor_msgs::msg::JointState::SharedPtr msg) {
@@ -174,15 +218,14 @@ class UR5eJointController : public rclcpp::Node {
                 for (int i = 0; i < 3; ++i) {
                     r_initial_geo[i] = r_[i]; // Guarda la posición inicial del Geomagic
                 }
-                // Guarda la posición y orientación actuales del Geomagic
-                // Si tienes orientación, aquí puedes guardar el valor correcto
-                // Si tienes orientación en quat_real_geo:
                 qt_init_geo[0] = quat_real_geo.w();
                 qt_init_geo[1] = quat_real_geo.x();
                 qt_init_geo[2] = quat_real_geo.y();
                 qt_init_geo[3] = quat_real_geo.z();
 
+                geo_pose_capturada_ = true;   // Marcar que ya se capturó
                 capturar_pose_inicial_ = false; // Solo captura una vez
+                RCLCPP_INFO(this->get_logger(), "Pose inicial del Geomagic capturada. Control habilitado.");
             }
             if (msg->grey_button == 1) {
                 RCLCPP_INFO(this->get_logger(), "Botón gris presionado");
@@ -192,162 +235,84 @@ class UR5eJointController : public rclcpp::Node {
             }
         }
 
-        void posicion_inicial() {
-            
-            if (posicion_inicial_alcanzada_) {
-                // Si ya se alcanzó la posición inicial, no hacer nada
-                return;
-            }
-            auto trajectory_msg = trajectory_msgs::msg::JointTrajectory();
-            trajectory_msg.joint_names = {"shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-                                        "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"};
-            auto point = trajectory_msgs::msg::JointTrajectoryPoint();
-            RCLCPP_INFO(this->get_logger(), "Enviando posición inicial: %.2f %.2f %.2f %.2f %.2f %.2f",
-                        q_init[0], q_init[1], q_init[2], q_init[3], q_init[4], q_init[5]);
-            point.positions = {q_init[0], q_init[1], q_init[2], q_init[3], q_init[4], q_init[5]};
+        // Eliminar completamente la función posicion_inicial()
 
-            point.time_from_start = rclcpp::Duration::from_seconds(4); // El tiempo de control
-            trajectory_msg.points.push_back(point);
-            joint_trajectory_pub_->publish(trajectory_msg);
-
-            // Verificar si la posición actual coincide con la posición inicial
-            bool posicion_correcta = true;
-            for (int i = 0; i < 6; ++i) {
-                cout<<"posicion del ur5"<<q_<<endl;
-                cout<<"diferencia articular: "<<q_[i] - q_init[i]<<endl;
-                if (std::abs(q_[i] - q_init[i]) > 0.01) { // Tolerancia de 0.01 radianes
-                    posicion_correcta = false;
-                    break;
-                }
-            }
-            // imprimir la pos cartesiana del UR5
-            pinocchio::forwardKinematics(*model, *data, q_); //Eigen::Map<Eigen::VectorXd>(q_, 6) -> converite duble[] a eigen::vector
-            pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
-            cout<< "x: "<< data->oMf[tool_frame_id].translation()[0]<<" y: "<< data->oMf[tool_frame_id].translation()[1]<<" z: "<< data->oMf[tool_frame_id].translation()[2]<<endl; 
-            //cout<< "quat: "<< data->oMf[tool_frame_id].rotation().w()<<" "<< data->oMf[tool_frame_id].rotation().x()<<" "<< data->oMf[tool_frame_id].rotation().y()<<" "<< data->oMf[tool_frame_id].rotation().z()<<endl;
-
-            if (posicion_correcta) {
-                RCLCPP_INFO(this->get_logger(), "Posición inicial alcanzada.");
-                posicion_inicial_alcanzada_ = true;
-                capturar_pose_inicial_ = true;
-            }
-        }
-
-        
-        
         //Bucle de control que calcula y publica nuevas posiciones articulares.
         void control_loop() {
-
-            quat_initial_geo.w() = qt_init_geo[0]; quat_initial_geo.x() = qt_init_geo[1]; quat_initial_geo.y() = qt_init_geo[2]; quat_initial_geo.z() = qt_init_geo[3];
+            // Verificar que se haya capturado la pose inicial del robot
             if (!posicion_inicial_alcanzada_) {
-                // Si no se ha alcanzado la posición inicial, no ejecutar el bucle de control
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Esperando primera pose en /joint_states...");
                 return;
             }
-            // variables modificables desde config.txt
-            try {
-                load_values_from_file(config_path, max_iteraciones, 1, 18);       // Leer la 6ta línea para x_init del UR5
-            } catch (const std::exception &e) {
-                cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
+            
+            // Si es con Geomagic, esperar captura de pose inicial del haptic
+            if (geomagic && !geo_pose_capturada_) {
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "Esperando captura de pose inicial del Geomagic (botón gris)...");
+                return;
             }
-            try {
-                load_values_from_file(config_path, alpha, 1, 16);       // Leer la 6ta línea para x_init del UR5
-            } catch (const std::exception &e) {
-                cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
+
+            const double dt = static_cast<double>(control_loop_time) / 1000.0;
+            time_elapsed_ += dt; // Usar dt calculado del periodo real
+
+            quat_initial_geo.w() = qt_init_geo[0]; quat_initial_geo.x() = qt_init_geo[1]; quat_initial_geo.y() = qt_init_geo[2]; quat_initial_geo.z() = qt_init_geo[3];
+            
+            Eigen::Quaterniond quat_trans_geo = Eigen::Quaterniond::Identity();
+            if (geomagic && geo_pose_capturada_) {
+                cout<<"quat_real_geo: "<<quat_real_geo.w()<<" "<<quat_real_geo.x()<<" "<<quat_real_geo.y()<<" "<<quat_real_geo.z()<<endl;
+                cout<<"quat_initial_geo: "<<quat_initial_geo.w()<<" "<<quat_initial_geo.x()<<" "<<quat_initial_geo.y()<<" "<<quat_initial_geo.z()<<endl;    
+                quat_trans_geo = quat_real_geo * quat_initial_geo.inverse();
+                cout<<"quat_trans_geo: "<<quat_trans_geo.w()<<" "<<quat_trans_geo.x()<<" "<<quat_trans_geo.y()<<" "<<quat_trans_geo.z()<<endl;
+                
+                Eigen::AngleAxisd aa(quat_trans_geo);
+                double angle = aa.angle();
+                Eigen::Vector3d axis = aa.axis();
+
+                // Escalar el ángulo (por ejemplo, a la mitad)
+                double escala = 0.5;
+                Eigen::AngleAxisd aa_escalado(angle * escala, axis);
+                
+                // Reconstruir el cuaternión escalado
+                quat_trans_geo = Eigen::Quaterniond(aa_escalado);
             }
-            
-            pinocchio::forwardKinematics(*model, *data, Eigen::Map<Eigen::VectorXd>(q_init, 6));
-            pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
-
-            x_init[0] = data->oMf[tool_frame_id].translation()[0];
-            x_init[1] = data->oMf[tool_frame_id].translation()[1];
-            x_init[2] = data->oMf[tool_frame_id].translation()[2];
-            cout<<"x_init: "<<x_init[0]<<" "<<x_init[1]<<" "<<x_init[2]<<endl;
-
-            qt_init_ur5[0] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).w();
-            qt_init_ur5[1] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).x();
-            qt_init_ur5[2] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).y();
-            qt_init_ur5[3] = Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).z();
-            cout<<"qt_init: "<<qt_init_ur5[0]<<" "<<qt_init_ur5[1]<<" "<<qt_init_ur5[2]<<" "<<qt_init_ur5[3]<<endl;
-
-            Eigen::Quaterniond quat_trans_geo;
-            cout<<"quat_real_geo: "<<quat_real_geo.w()<<" "<<quat_real_geo.x()<<" "<<quat_real_geo.y()<<" "<<quat_real_geo.z()<<endl;
-            cout<<"quat_initial_geo: "<<quat_initial_geo.w()<<" "<<quat_initial_geo.x()<<" "<<quat_initial_geo.y()<<" "<<quat_initial_geo.z()<<endl;    
-            quat_trans_geo = quat_real_geo * quat_initial_geo.inverse();
-            cout<<"quat_trans_geo: "<<quat_trans_geo.w()<<" "<<quat_trans_geo.x()<<" "<<quat_trans_geo.y()<<" "<<quat_trans_geo.z()<<endl;
-            
-            Eigen::AngleAxisd aa(quat_trans_geo);
-            double angle = aa.angle();
-            Eigen::Vector3d axis = aa.axis();
-            //axis.x() = -axis.x();
-            //axis.y() = -axis.y();
-
-            // Escalar el ángulo (por ejemplo, a la mitad)
-            double escala = 0.5;
-            Eigen::AngleAxisd aa_escalado(angle * escala, axis);
-            
-
-            // Reconstruir el cuaternión escalado
-            quat_trans_geo = Eigen::Quaterniond(aa_escalado);
-
             
             cout<<"x_init: "<<x_init[0]<<" "<<x_init[1]<<" "<<x_init[2]<<endl;
             cout<<"r_init: "<<r_[0]<<" "<<r_[1]<<" "<<r_[2]<<endl;
-            time_elapsed_ += 0.01; // Incremento de 100 ms
+            
             if (geomagic) {
-                int escala = 2.5;
+                double escala = 2.5; // Cambiar a double
                 // Si se está usando el haptic phantom, actualizar las posiciones
-                x_des[0] = (r_[1]-r_initial_geo[1])*escala + x_init[0]; // -r_[0]*2+0.647514 //0.0881142
+                x_des[0] = (r_[1]-r_initial_geo[1])*escala + x_init[0];
                 x_des[1] = (x_init[1]- (r_[0]-r_initial_geo[0])*escala);
                 x_des[2] = (r_[2]-r_initial_geo[2])*escala + x_init[2];
-            }else {                
-                x_des[0] = x_init[0] + 0.1 * cos(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_); //-0.10912;//x_init[0] + 0.1 * cos(2 * PI * 0.5 * time_elapsed_); // X_BASE + AMPLITUDE * cos(2 * PI * FREQUENCY * time_elapsed_)
-                x_des[1] = x_init[1] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_); //0.9479;//x_init[1] + 0.1 * sin(2 * PI * 0.5 * time_elapsed_);                                           // Y_CONST
-                x_des[2] = x_init[2] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_);//0.187537;//x_init[2];//.5 + 0.1 * sin(2 * PI * 0.5 * time_elapsed_)                                          // Z_CONST
-
+            } else {                
+                x_des[0] = x_init[0] + 0.1 * cos(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_);
+                x_des[1] = x_init[1] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_);
+                x_des[2] = x_init[2] + 0.1 * sin(2 * PI * 0.05 * time_elapsed_)* exp(-0.05 * time_elapsed_);
             }
             
-            //x_init[0] = -0.1152; x_init[1] = 0.493; x_init[2] =  0.293;
-            
-            
             cout<<"x_des: "<<x_des[0]<<" "<<x_des[1]<<" "<<x_des[2]<<endl;
-            
-            
-            // Coordenadas deseadas (xd)
             
             // guarda la posicion del haptico en el archivo
             if (output_file_.is_open()) {
                 output_file_ << r_[0] << " " << r_[1] << " " << r_[2] << " ";
-                output_file_ <<   quat_trans_geo.w() << " " << quat_trans_geo.x() << " " << quat_trans_geo.y() << " " << quat_trans_geo.z() << "\n";
-
+                output_file_ << quat_trans_geo.w() << " " << quat_trans_geo.x() << " " << quat_trans_geo.y() << " " << quat_trans_geo.z() << "\n";
             }
 
-
-            //convierte la pocision articular a acartesiana y quaternion
+            //convierte la posicion articular a cartesiana y quaternion
             pinocchio::forwardKinematics(*model, *data, q_);
             pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
-            // Imprimir la posición cartesiana del UR5
-            
 
             // guarda la posicion del ur5 en el archivo
             if (output_file_3.is_open()) {
                 output_file_3 << "Positions ur: "<<data->oMf[tool_frame_id].translation()[0]<<" "<<data->oMf[tool_frame_id].translation()[1]<<" "<<data->oMf[tool_frame_id].translation()[2]<<" ";  
                 output_file_3 << "Orientation (quaternion): "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).w()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).x()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).y()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).z()<<endl; 
-
-                // for (int i = 0; i < 6; ++i) {
-                //     output_file_3 << q_[i] << " ";
-                // }
-                // output_file_3 << "\n";
             }
 
-            
-
-            //quat_initial.w() = -0.26707; quat_initial.x() = 0.962872; quat_initial.y() = 0.010197; quat_initial.z() = -0.03804;
             quat_initial_UR5.w() = qt_init_ur5[0]; quat_initial_UR5.x() = qt_init_ur5[1]; quat_initial_UR5.y() = qt_init_ur5[2]; quat_initial_UR5.z() = qt_init_ur5[3];
             Eigen::Quaterniond current_orientation;
 
             if (orientacion) {
-                current_orientation = quat_initial_UR5*quat_trans_geo;//*q_x*q_x;// * q_y * q_z;
-    
+                current_orientation = quat_initial_UR5*quat_trans_geo;
             } else {
                 current_orientation = Eigen::Quaterniond(Eigen::Matrix3d::Identity());
             }
@@ -357,9 +322,9 @@ class UR5eJointController : public rclcpp::Node {
             if (controlador[0] == 1) {
                 // Controlador de impedancia
                 cout<<"Controlador de impedancia"<<endl;
-                q_solution = impedanceControlPythonStyle(*model,*data,tool_frame_id,q_,qd_,config_path,rot_des,x_des,0.01,J_anterior);
+                q_solution = impedanceControlPythonStyle(*model,*data,tool_frame_id,q_,qd_,config_path,rot_des,x_des,dt,J_anterior);
                 if (!q_solution.allFinite()) {
-                    RCLCPP_ERROR(this->get_logger(), "La solución de IK no es válida.");
+                    RCLCPP_ERROR(this->get_logger(), "La solución de impedancia no es válida.");
                     return;
                 }
             } else if (controlador[0] == 2) {
@@ -367,28 +332,19 @@ class UR5eJointController : public rclcpp::Node {
                 cout<<"Cinemática inversa"<<endl;
                 q_solution = Cinematica_Inversa(q_, x_des,rot_des, max_iteraciones[0], alpha[0], model, data, tool_frame_id);
                 if (!q_solution.allFinite()) {
-                //
-                RCLCPP_ERROR(this->get_logger(), "La solución de IK no es válida.");
-                return;
+                    RCLCPP_ERROR(this->get_logger(), "La solución de IK no es válida.");
+                    return;
+                }
             }
 
-            }
-            // Verificar si la solución es válida
-           
-
-            // if ((q_-q_solution).norm() > 1) {
-            //     RCLCPP_ERROR(this->get_logger(), "La diferencia entre la posición inicial y la solución es demasiado grande.");
-            //     q_solution = q_;
-                
-            // }
-            if ((q_-q_solution).norm() < 0.001) {       // si la diferencia entre la posición inicial y la solución es muy pequeña, se usa la posición actual         
+            if ((q_-q_solution).norm() < 0.001) {       
                 q_solution = q_;
-                
             }
+            
             cout<<"q_enviado"<<q_solution[0]<<" "<<q_solution[1]<<" "<<q_solution[2]<<" "<<q_solution[3]<<" "<<q_solution[4]<<" "<<q_solution[5]<<endl;
             pinocchio::forwardKinematics(*model, *data, q_solution);
             pinocchio::updateFramePlacement(*model, *data, tool_frame_id);
-            //limit_joint_changes(q_, q_solution);
+            
             if (output_file_2.is_open()) {
                 output_file_2 << "Positions control: "<< data->oMf[tool_frame_id].translation()[0]<<" "<<data->oMf[tool_frame_id].translation()[1]<<" "<<data->oMf[tool_frame_id].translation()[2]<<" ";
                 output_file_2 << "Orientation (quaternion): "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).w()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).x()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).y()<<" "<< Eigen::Quaterniond(data->oMf[tool_frame_id].rotation()).z()<<endl; 
@@ -396,12 +352,13 @@ class UR5eJointController : public rclcpp::Node {
 
             // Publicar las nuevas posiciones articulares
             auto trajectory_msg = trajectory_msgs::msg::JointTrajectory();
+            trajectory_msg.header.stamp = this->now(); // Añadir timestamp
             trajectory_msg.joint_names = {"shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
                                           "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"};
             auto point = trajectory_msgs::msg::JointTrajectoryPoint();
             point.positions = {q_solution[0], q_solution[1], q_solution[2], q_solution[3], q_solution[4], q_solution[5]};
 
-            point.time_from_start = rclcpp::Duration::from_seconds(ur5_time); // Tiempo para alcanzar la posición
+            point.time_from_start = rclcpp::Duration::from_seconds(ur5_time); // Corregir conversión
             trajectory_msg.points.push_back(point);
             joint_trajectory_pub_->publish(trajectory_msg);
         }
@@ -449,6 +406,7 @@ class JointTrajectoryPublisher : public rclcpp::Node
 
             // Crear y publicar el mensaje de trayectoria
             auto message = trajectory_msgs::msg::JointTrajectory();
+            message.header.stamp = this->now(); // Añadir timestamp
             message.joint_names = {
                 "shoulder_pan_joint",
                 "shoulder_lift_joint",
@@ -460,7 +418,7 @@ class JointTrajectoryPublisher : public rclcpp::Node
             trajectory_msgs::msg::JointTrajectoryPoint point;
             point.positions = {joint_positions[0], joint_positions[1], joint_positions[2],
                             joint_positions[3], joint_positions[4], joint_positions[5]};
-            point.time_from_start = rclcpp::Duration::from_seconds(4.0);
+            point.time_from_start = rclcpp::Duration::from_seconds(4.0); // Corregir conversión
 
             message.points.push_back(point);
 
@@ -593,5 +551,5 @@ int main(int argc, char **argv) {
         return 0;
     }
     
-} 
+}
 
