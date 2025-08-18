@@ -29,7 +29,6 @@ include_directories(/usr/include/modbus)
 set(EXECUTABLES       
     ur5_ik_node
     ur5_impedance
-    gripper
 )
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -50,7 +49,6 @@ endforeach()
 set(EXECUTABLES_WITH_LIBRARIES
     ur5_ik_node
     ur5_impedance
-    gripper
 )
 
 set(COMMON_LIBRARIES
