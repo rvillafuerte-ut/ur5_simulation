@@ -7,9 +7,29 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(rcl REQUIRED)
+find_package(omni_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+include_directories(/usr/include/modbus)
+
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_executable(gripper ${SRC_DIR}/gripper.cpp)
+ament_target_dependencies(gripper 
+        rclcpp 
+        sensor_msgs
+        omni_msgs
+    )
+
+
+target_link_libraries(gripper modbus)
+install(DIRECTORY 
+    src DESTINATION share/${PROJECT_NAME})
+    
+install(TARGETS gripper
+  DESTINATION lib/${PROJECT_NAME}
+  )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

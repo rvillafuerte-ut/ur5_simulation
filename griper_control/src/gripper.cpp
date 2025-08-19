@@ -1,4 +1,21 @@
-#include "functions.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <iostream>
+#include <chrono>
+#include <memory>
+#include "omni_msgs/msg/omni_button_event.hpp"
+#include <modbus/modbus.h>
+#include <unistd.h>
+#include <iomanip>
+#include <cstdlib>  
+using namespace std;
+
+#define PI 3.14159265358979323846
+#define MAX_JOINT_DELTA 0.1
+// Parámetros del gripper
+#define CMD_REG_START 0x03E8
+#define STATUS_REG    0x07D0
+#define SLAVE_ID      0x09
+
 
 bool boton= false; // Variable global para el botón gris
 bool apretado = false; // Variable para controlar el estado del botón
@@ -93,44 +110,6 @@ void moveGripper(modbus_t* ctx, uint8_t position, uint8_t force) {
     };
     sendRawWithCRC(ctx, cmd, sizeof(cmd) - 2);
 }
-
-Eigen::MatrixXd computeFullJacobianQuaternion(
-    const pinocchio::Model& model,
-    pinocchio::Data& data,
-    const pinocchio::FrameIndex& tool_frame_id,
-    const Eigen::VectorXd& q,
-    double delta = 1e-8)
-{
-    int nq = q.size();
-    Eigen::MatrixXd J_full(7, nq); // 3 pos + 4 quat
-
-    // Estado nominal
-    pinocchio::forwardKinematics(model, data, q);
-    pinocchio::updateFramePlacement(model, data, tool_frame_id);
-    Eigen::Vector3d pos0 = data.oMf[tool_frame_id].translation();
-    Eigen::Quaterniond quat0(data.oMf[tool_frame_id].rotation());
-
-    for (int i = 0; i < nq; ++i) {
-        Eigen::VectorXd q_perturbed = q;
-        q_perturbed[i] += delta;
-
-        pinocchio::forwardKinematics(model, data, q_perturbed);
-        pinocchio::updateFramePlacement(model, data, tool_frame_id);
-        Eigen::Vector3d pos1 = data.oMf[tool_frame_id].translation();
-        Eigen::Quaterniond quat1(data.oMf[tool_frame_id].rotation());
-
-        // Diferencia numérica para posición
-        Eigen::Vector3d dpos = (pos1 - pos0) / delta;
-        // Diferencia numérica para cuaternión (Eigen almacena como x, y, z, w)
-        Eigen::Vector4d dquat = (quat1.coeffs() - quat0.coeffs()) / delta;
-
-        // Guardar en la columna i
-        J_full.block<3,1>(0, i) = dpos;
-        J_full.block<4,1>(3, i) = dquat;
-    }
-    return J_full;
-}
-
 
 
 
