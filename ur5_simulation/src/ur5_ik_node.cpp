@@ -369,6 +369,7 @@ class UR5eJointController : public rclcpp::Node {
                 
             }else{
                 ur5_time += 0.01 * (q_ - q_solution).norm();
+                cout<<"Tiempo de control: "<<ur5_time<<endl;
             }
             cout<<"q_enviado"<<q_solution[0]<<" "<<q_solution[1]<<" "<<q_solution[2]<<" "<<q_solution[3]<<" "<<q_solution[4]<<" "<<q_solution[5]<<endl;
             pinocchio::forwardKinematics(*model, *data, q_solution);
