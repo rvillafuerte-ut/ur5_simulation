@@ -1,4 +1,8 @@
 # ur5_simulation
+
+Este repositorio permite teleoperar dos robots UR5/UR5e mediante los módulos hápticos Geomagic Touch
+
+
 ## Requirements
 ROS2 Humble\n
 Teleoperation of UR5/UR5e with geomagic touch and ROS2 Humble
