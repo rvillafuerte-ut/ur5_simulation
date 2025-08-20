@@ -15,7 +15,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(omni_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Ceres REQUIRED)
 find_package(GLOG REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(osqp REQUIRED)
@@ -52,7 +51,6 @@ set(EXECUTABLES_WITH_LIBRARIES
 )
 
 set(COMMON_LIBRARIES
-    ceres
     pinocchio::pinocchio
     osqp::osqp
     OsqpEigen::OsqpEigen
