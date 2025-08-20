@@ -67,6 +67,8 @@ Solucionador de optimización cuadrática y su interfaz para Eigen. Se compilan 
     cd osqp
     # Usamos la versión v0.6.3 por compatibilidad con osqp-eigen
     git checkout v0.6.3
+    # ¡Paso clave! Actualizamos los submódulos para que coincidan con esta versión
+    git submodule update --init --recursive
     mkdir build && cd build
     cmake ..
     make
