@@ -6,8 +6,9 @@ Este repositorio contiene el software necesario para teleoperar dos robots UR5/U
 
 *   **Sistema Operativo:** Ubuntu 22.04
 *   **Plataforma ROS:** ROS 2 Humble
+*   **RAM:** Se recomienda un mínimo de 8 GB de RAM para la compilación.
 
-## Guía de Instalación de Dependencias
+## Guía de Instalación
 
 Sigue estos pasos en orden para configurar tu entorno de desarrollo.
 
@@ -26,52 +27,59 @@ export LANG=es_ES.UTF-8
 sudo apt install software-properties-common
 sudo add-apt-repository universe
 
-# Añadir la clave GPG de ROS 2
+# Añadir la clave GPG y el repositorio de ROS 2
 sudo apt update && sudo apt install curl
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
-# Añadir el repositorio de ROS 2 a la lista de fuentes
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
-# Actualizar e instalar ROS 2
+# Actualizar e instalar ROS 2 y herramientas de desarrollo
 sudo apt update
 sudo apt upgrade
-sudo apt install ros-humble-desktop
-sudo apt install ros-dev-tools
+sudo apt install ros-humble-desktop ros-dev-tools
 
 # Añadir el script de configuración al .bashrc para cargarlo automáticamente
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 ```
 **Importante:** Cierra y vuelve a abrir tu terminal para que los cambios surtan efecto.
 
-### 2. Instalación de Librerías Adicionales
+### 2. Instalación de Dependencias Adicionales
 
-#### Pinocchio
-Librería de cinemática y dinámica para robótica.
+Instala todas las dependencias de paquetes de ROS y del sistema con un solo comando.
+
 ```bash
-sudo apt install ros-$ROS_DISTRO-pinocchio
+sudo apt update
+sudo apt install \
+  ros-humble-robot-state-publisher \
+  ros-humble-joint-state-publisher \
+  ros-humble-joint-state-publisher-gui \
+  ros-humble-xacro \
+  ros-humble-ros-gz \
+  ros-humble-gazebo-ros-pkgs \
+  ros-humble-gazebo-msgs \
+  ros-humble-gazebo-plugins \
+  ros-humble-ros-ign-bridge \
+  ros-humble-teleop-twist-keyboard \
+  ros-humble-ros2-control \
+  ros-humble-controller-manager \
+  ros-humble-ur \
+  ros-humble-pinocchio \
+  libeigen3-dev \
+  libgoogle-glog-dev \
+  libmodbus-dev
 ```
 
-#### libmodbus
-Librería para la comunicación a través del protocolo Modbus.
-```bash
-sudo apt install libmodbus-dev
-```
+### 3. Instalación de Dependencias desde Código Fuente
 
-#### OSQP y Osqp-Eigen
-Solucionador de optimización cuadrática y su interfaz para Eigen. Se compilan desde el código fuente para asegurar la compatibilidad.
+`OSQP` y `Osqp-Eigen` se compilan desde el código fuente para asegurar la compatibilidad.
 
 1.  **Instalar OSQP:**
     ```bash
     git clone --recursive https://github.com/osqp/osqp.git
     cd osqp
-    # Usamos la versión v0.6.3 por compatibilidad con osqp-eigen
     git checkout v0.6.3
-    # ¡Paso clave! Actualizamos los submódulos para que coincidan con esta versión
     git submodule update --init --recursive
     mkdir build && cd build
-    cmake ..
-    make
+    cmake .. && make
     sudo make install
     cd ../..
     ```
@@ -80,28 +88,47 @@ Solucionador de optimización cuadrática y su interfaz para Eigen. Se compilan 
     ```bash
     git clone https://github.com/robotology/osqp-eigen.git
     cd osqp-eigen
-    # Usamos la versión v0.8.1, compatible con la versión de OSQP instalada
     git checkout v0.8.1
     mkdir build && cd build
-    cmake ..
-    make
+    cmake .. && make
     sudo make install
     cd ../..
     ```
-    **Nota:** Es importante actualizar el caché del enlazador después de instalar librerías manualmente.
+    **Nota:** Actualiza el caché del enlazador después de instalar librerías manualmente.
     ```bash
     sudo ldconfig
     ```
 
-### 3. Otras Dependencias de Paquetes
+### 4. Compilación del Workspace
 
-Para la funcionalidad completa, necesitarás los siguientes paquetes de ROS 2:
+Una vez instaladas todas las dependencias, clona este repositorio y los paquetes adicionales en tu workspace de ROS 2 y compila.
 
-*   **Driver de Universal Robots:**
-    *   Instrucciones de instalación: [UR-Driver ROS2](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver)
+```bash
+# Crea y navega a tu workspace
+mkdir -p ~/tesis_ws/src
+cd ~/tesis_ws/src
 
-*   **Paquete para Geomagic Touch:**
-    *   Repositorio: `https://github.com/stevens-armlab/Geomagic_Touch_ROS2.git`
+# Clona los repositorios necesarios
+git clone https://github.com/DavidValdezUtec/ur5_simulation.git
+git clone https://github.com/stevens-armlab/Geomagic_Touch_ROS2.git
+# Aquí iría el 'git clone' para el driver del UR si es necesario
 
-    *Nota del autor: "Moví omni_broadcaster por un error en mi primera instalación, pero actualmente podría funcionar bien".*
+# Regresa a la raíz del workspace y compila
+cd ~/tesis_ws
+colcon build --symlink-install
+```
+**Nota sobre la compilación:** Si encuentras un error de tipo `killed` o `Terminado`, significa que te has quedado sin memoria RAM. Intenta compilar de nuevo usando un solo núcleo:
+`colcon build --parallel-workers 1`
+
+### 5. Uso
+
+Para ejecutar la simulación, asegúrate de haber "sourceado" tu workspace y luego utiliza el archivo de lanzamiento correspondiente.
+
+```bash
+# Carga la configuración de tu workspace (haz esto en cada nueva terminal)
+source ~/tesis_ws/install/setup.bash
+
+# Lanza el nodo de simulación (reemplaza con el nombre real de tu launch file)
+ros2 launch ur5_simulation ur5_simulation.launch.py
+```
 
