@@ -1,5 +1,6 @@
-
 #include "functions.hpp"
+#include <ur5_kinematics/kinematics.hpp>
+
 string ur = "";
 
 class UR5eJointController : public rclcpp::Node {
@@ -16,6 +17,8 @@ class UR5eJointController : public rclcpp::Node {
                 // Se elimina la carga de q_init desde el archivo
                 load_values_from_file(config_path, controlador, 1, 35);       // Leer controlador
                 load_values_from_file(config_path, qt_init_geo, 4, 11);       // Leer qt_init del GeomagicTouch
+                kinematics_solver_ = std::make_unique<UR5Kinematics>(urdf_path);
+
             } catch (const std::exception &e) {
                 cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
             }
@@ -102,8 +105,8 @@ class UR5eJointController : public rclcpp::Node {
         rclcpp::TimerBase::SharedPtr timer_;
         std::unique_ptr<pinocchio::Model> model; // declarar puntero único para el modelo
         std::unique_ptr<pinocchio::Data> data; // declarar puntero único para los datos
-        pinocchio::FrameIndex tool_frame_id; 
-
+        pinocchio::FrameIndex tool_frame_id;
+        std::unique_ptr<UR5Kinematics> kinematics_solver_;
         std::string config_path = get_file_path("ur5_simulation", "include/config.txt");
         std::string urdf_path = get_file_path("ur5_simulation", "include/" + ur + ".urdf");
         std::string ur5_pos = get_file_path("ur5_simulation",     "launch/output_data3.txt");
@@ -346,12 +349,25 @@ class UR5eJointController : public rclcpp::Node {
             } else if (controlador[0] == 2) {
                 // Cinemática inversa
                 cout<<"Cinemática inversa"<<endl;
-                q_solution = Cinematica_Inversa(q_, x_des,rot_des, max_iteraciones[0], alpha[0], model, data, tool_frame_id);
+
+                // 1. Convertir los arrays a los tipos de Eigen correctos
+                Eigen::Vector3d desired_pos_vec(x_des[0], x_des[1], x_des[2]);
+                Eigen::Quaterniond desired_orient_quat(rot_des[0], rot_des[1], rot_des[2], rot_des[3]); // w, x, y, z
+                desired_orient_quat.normalize(); // Es una buena práctica normalizar el cuaternión
+
+                // 2. Llamar a la función con los argumentos correctos
+                q_solution = kinematics_solver_->inverseKinematicsQP(
+                    q_,                                     // Posición articular actual (Eigen::VectorXd)
+                    desired_pos_vec,                        // Posición deseada (Eigen::Vector3d)
+                    desired_orient_quat,                    // Orientación deseada (Eigen::Quaterniond)
+                    static_cast<int>(max_iteraciones[0]),   // Máximas iteraciones (int)
+                    alpha[0]                                // Tasa de aprendizaje (double)
+                );
+
                 if (!q_solution.allFinite()) {
-                //
-                RCLCPP_ERROR(this->get_logger(), "La solución de IK no es válida.");
-                return;
-            }
+                    RCLCPP_ERROR(this->get_logger(), "La solución de IK no es válida.");
+                    return;
+                }
 
             }
             // Verificar si la solución es válida
@@ -579,5 +595,5 @@ int main(int argc, char **argv) {
         return 0;
     }
     
-} 
+}
 

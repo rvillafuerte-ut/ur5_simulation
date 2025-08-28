@@ -337,9 +337,13 @@ Eigen::VectorXd inverseKinematicsQP(const pinocchio::Model& model, pinocchio::Da
 }
 
 
-Eigen::VectorXd Cinematica_Inversa(const Eigen::VectorXd& q_init,  double desired_pose[], 
-                                   double desired_quat[],  int max_iteraciones,    double alpha,
-                                   std::unique_ptr<pinocchio::Model>& model,  std::unique_ptr<pinocchio::Data>& data,
+Eigen::VectorXd Cinematica_Inversa(const Eigen::VectorXd& q_init,  
+                                   double desired_pose[], 
+                                   double desired_quat[],  
+                                   int max_iteraciones,    
+                                   double alpha,
+                                   std::unique_ptr<pinocchio::Model>& model,  
+                                   std::unique_ptr<pinocchio::Data>& data,
                                    pinocchio::FrameIndex& tool_frame_id) {
 
 
@@ -380,8 +384,6 @@ void limit_joint_changes(const double current_positions[6], Eigen::VectorXd& new
         }
     }
 }
-
-
 
 
 
