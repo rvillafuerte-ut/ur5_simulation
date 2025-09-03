@@ -42,15 +42,6 @@ public:
     );
 
     // Control de Impedancia
-    Eigen::VectorXd impedanceControl(
-        const Eigen::VectorXd& q,
-        const Eigen::VectorXd& qd,
-        const Eigen::Vector3d& desired_pos,
-        const Eigen::Quaterniond& desired_orient,
-        double dt,
-        Eigen::MatrixXd& J_anterior
-    );
-
     // Cinemática Directa (útil para obtener la pose actual)
     pinocchio::SE3 forwardKinematics(const Eigen::VectorXd& q);
 

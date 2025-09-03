@@ -18,6 +18,7 @@
 #include <iostream>
 #include <chrono>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <ur5_impedance/impedance.hpp>
 using namespace std;
 
 template<typename T>
@@ -58,13 +59,6 @@ std::string get_file_path(const std::string& package_name, const std::string& re
     }
 }
 
-Eigen::MatrixXd jacobian(const pinocchio::Model& model, pinocchio::Data& data, 
-                         const pinocchio::FrameIndex& tool_frame_id, const Eigen::VectorXd& q) {
-    pinocchio::Data::Matrix6x J(6, model.nv);
-    J.setZero();
-    pinocchio::computeFrameJacobian(model, data, q, tool_frame_id, pinocchio::LOCAL_WORLD_ALIGNED, J);
-    return J;
-}
 Eigen::MatrixXd computeFullJacobianQuaternion(
     const pinocchio::Model& model,
     pinocchio::Data& data,
@@ -102,55 +96,6 @@ Eigen::MatrixXd computeFullJacobianQuaternion(
     return J_full;
 }
 
-Eigen::VectorXd computeError(pinocchio::Data& data, 
-                             const pinocchio::FrameIndex& tool_frame_id, const pinocchio::SE3& desired_pose) {
-    /* const pinocchio::SE3 current_pose = data.oMf[tool_frame_id];
-    
-    const pinocchio::SE3 error_pose = current_pose.actInv(desired_pose);
-    return pinocchio::log6(error_pose).toVector(); // Error en SE(3) */
-    const pinocchio::SE3 current_pose = data.oMf[tool_frame_id];
-
-    // Error de posición
-    Eigen::Vector3d position_error = desired_pose.translation() - current_pose.translation();
-
-    // Error de orientación usando cuaterniones
-    Eigen::Quaterniond current_orientation = Eigen::Quaterniond(current_pose.rotation());
-    Eigen::Quaterniond desired_orientation = Eigen::Quaterniond(desired_pose.rotation());
-
-    Eigen::Quaterniond error_quat = desired_orientation * current_orientation.inverse();
-    Eigen::Vector3d angular_error;
-
-    // Convertir el cuaternión de error a una representación vectorial del error angular
-    if (error_quat.w() < 0) {
-        error_quat.w() = -error_quat.w(); // Asegurar la parte escalar positiva para la representación del error más corta
-    }
-    angular_error = error_quat.vec(); // El vector parte del cuaternión representa el eje de rotación escalado por sin(ángulo/2)
-
-    Eigen::VectorXd error(6);
-    error << position_error, (current_orientation.coeffs()-desired_orientation.coeffs()); // Concatenar errores de posición y orientación
-    return error;
-}
-Eigen::VectorXd computeErrorQuaternion(
-    pinocchio::Data& data, 
-    const pinocchio::FrameIndex& tool_frame_id, 
-    const pinocchio::SE3& desired_pose) 
-{
-    const pinocchio::SE3 current_pose = data.oMf[tool_frame_id];
-
-    // Error de posición
-    Eigen::Vector3d position_error = desired_pose.translation() - current_pose.translation();
-
-    // Error de orientación usando cuaterniones
-    Eigen::Quaterniond current_orientation(current_pose.rotation());
-    Eigen::Quaterniond desired_orientation(desired_pose.rotation());
-
-    // Diferencia de cuaternión (Eigen: x, y, z, w)
-    Eigen::Vector4d quat_error = current_orientation.coeffs() - desired_orientation.coeffs();
-
-    Eigen::VectorXd error(7);
-    error << position_error, quat_error;
-    return error;
-}
 
 void load_values_from_file(const std::string &file_path, double values[], int size, int line_number) {
     std::ifstream file(file_path);
@@ -220,7 +165,7 @@ Eigen::VectorXd impedanceControlPythonStyle(
 
     Eigen::Matrix<double,7,7> Kp_task = Eigen::Matrix<double,7,7>::Identity();
     Eigen::Matrix<double,7,7> Kd_task = Eigen::Matrix<double,7,7>::Identity();
-    Kp_task.diagonal() << K[0], K[1], K[2], K[3], K[4], K[5], K[6]; // Asigna los valores de K
+    Kp_task .diagonal() << K[0], K[1], K[2], K[3], K[4], K[5], K[6]; // Asigna los valores de K
     Kd_task.diagonal() << B[0], B[1], B[2], B[3], B[4], B[5], B[6]; // Asigna los valores de B
  
     Eigen::Quaterniond desired_orientation_quat(qt_[0], qt_[1], qt_[2], qt_[3]); // w, x, y, z
@@ -323,7 +268,7 @@ class UR5eJointController : public rclcpp::Node {
              // Inicializa con 6 elementos, todos a cero
             output_file_.open(geo_pos, std::ios::out | std::ios::app);
             load_values_from_file(config_path, q_init, 6, 7); 
-            
+            impedance_solver_ = std::make_unique<UR5Impedance>(urdf_path);
             q_des = Eigen::VectorXd::Zero(6); // Inicializa con 6 elementos, todos a cero
             q_des<< 1.0,-1.57,1.57,0,0,0; // Asigna los valores deseados
 
@@ -394,7 +339,8 @@ class UR5eJointController : public rclcpp::Node {
         std::string urdf_path = get_file_path("ur5_simulation",   "include/ur5e.urdf");
         std::string config_path = get_file_path("ur5_simulation", "include/config.txt");
         std::string geo_pos = get_file_path("ur5_simulation",     "launch/output_data_impedancia.txt");
-        
+        std::unique_ptr<UR5Impedance> impedance_solver_;
+
         
         
 
@@ -581,6 +527,25 @@ class UR5eJointController : public rclcpp::Node {
                 // Podrías añadir un 'return' o esperar hasta tener datos.
                 // Para este ejemplo, asumiremos que se reciben rápidamente.
             }
+            double K[7]; load_values_from_file(config_path, K, 7, 23);       // 7 valores de K
+            double B[7]; load_values_from_file(config_path, B, 7, 25);       // 7 valores de B
+
+            Eigen::Matrix<double,7,1> Kp_task = Eigen::Matrix<double,7,1>::Identity();
+            Eigen::Matrix<double,7,1> Kd_task = Eigen::Matrix<double,7,1>::Identity();
+            Kp_task << K[0], K[1], K[2], K[3], K[4], K[5], K[6]; // Asigna los valores de K
+            Kd_task << B[0], B[1], B[2], B[3], B[4], B[5], B[6]; // Asigna los valores de B
+
+            // Eigen::VectorXd q_solution = impedance_solver_->calculateControlCommand(
+            //     q_, 
+            //     qd_,                
+            //     Eigen::Vector3d(x_des_[0], x_des_[1], x_des_[2]), // Para xdes
+            //     Eigen::Quaterniond(qt_[0], qt_[1], qt_[2], qt_[3]),
+            //     vel_d,
+            //     acc_d,
+            //     Kp_task,
+            //     Kd_task,
+            //     control_dt
+            // );
 
             Eigen::VectorXd q_solution = impedanceControlPythonStyle(
                 *model, *data, tool_frame_id, q_, qd_,
@@ -589,8 +554,8 @@ class UR5eJointController : public rclcpp::Node {
                 x_des_, // Para xdes
                 J_anterior, control_dt,
                 vel_d, acc_d);         // Se pasará por referencia para actualizar J_anterior dentro de la función
-                                    // y usarlo en el siguiente ciclo.
-           
+                                        // y usarlo en el siguiente ciclo.
+
 
 
             for (int i = 0; i < 6; ++i) {

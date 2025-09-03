@@ -32,7 +32,7 @@
 
 
 //CONTROLADOR    1-imoednacia 2-optmizador
-2
+1
 
 
 

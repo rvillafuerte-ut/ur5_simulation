@@ -20,6 +20,7 @@ find_package(pinocchio REQUIRED)
 find_package(osqp REQUIRED)
 find_package(OsqpEigen REQUIRED)
 find_package(ur5_kinematics REQUIRED) # AÑADIR ESTA LÍNEA
+find_package(ur5_impedance REQUIRED) # AÑADIR ESTA LÍNEA
 
 
 
@@ -45,6 +46,7 @@ foreach(EXEC ${EXECUTABLES})
         omni_msgs
         geometry_msgs
         ur5_kinematics
+        ur5_impedance
     )
 endforeach()
 

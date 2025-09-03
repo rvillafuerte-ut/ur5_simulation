@@ -1,5 +1,6 @@
 #include "functions.hpp"
 #include <ur5_kinematics/kinematics.hpp>
+#include <ur5_impedance/impedance.hpp>
 
 string ur = "";
 
@@ -18,6 +19,7 @@ class UR5eJointController : public rclcpp::Node {
                 load_values_from_file(config_path, controlador, 1, 35);       // Leer controlador
                 load_values_from_file(config_path, qt_init_geo, 4, 11);       // Leer qt_init del GeomagicTouch
                 kinematics_solver_ = std::make_unique<UR5Kinematics>(urdf_path);
+                impedance_solver_ = std::make_unique<UR5Impedance>(urdf_path);
 
             } catch (const std::exception &e) {
                 cerr << "Error al cargar el archivo de configuración: " << e.what() << endl;                
@@ -107,6 +109,7 @@ class UR5eJointController : public rclcpp::Node {
         std::unique_ptr<pinocchio::Data> data; // declarar puntero único para los datos
         pinocchio::FrameIndex tool_frame_id;
         std::unique_ptr<UR5Kinematics> kinematics_solver_;
+        std::unique_ptr<UR5Impedance> impedance_solver_;
         std::string config_path = get_file_path("ur5_simulation", "include/config.txt");
         std::string urdf_path = get_file_path("ur5_simulation", "include/" + ur + ".urdf");
         std::string ur5_pos = get_file_path("ur5_simulation",     "launch/output_data3.txt");

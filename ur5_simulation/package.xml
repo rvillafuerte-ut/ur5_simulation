@@ -25,6 +25,7 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
   <depend>ur5_kinematics</depend> 
+  <depend>ur5_impedance</depend> 
   <depend>pinocchio</depend>
 
 
