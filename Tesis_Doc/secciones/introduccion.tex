@@ -1,0 +1,100 @@
+\customchapter{INTRODUCCIÓN} 
+
+\introsection{Presentación del tema de investigación}
+
+Las heridas abiertas en la piel representan una de las principales causas de consulta en emergencias médicas. En 2021, en Estados Unidos, se registraron más de 722,000 visitas al área ambulatoria por cortes y heridas abiertas en extremidades superiores en hombres, mientras que Canadá reportó aproximadamente 151,000 visitas por lesiones similares entre marzo de 2023 y abril de 2024, lo que equivale a un promedio de 400 casos diarios \cite{Informe_emergencia_2021}\cite{CIHI}. Estas cifras reflejan una alta demanda, por lo que es crucial analizar su relevancia y los procedimientos medicos aplicables.
+
+La sutura es un procedimiento médico esencial para el cierre adecuado de incisiones en tejidos blandos o heridas abiertas, tanto en cirugías como en atención ambulatoria \cite{Instru_quirurgica}. Su correcta ejecución no solo acelera el proceso de cicatrización, sino que también asegura el bienestar del paciente, previniendo complicaciones posteriores. Este procedimiento es ampliamente utilizado en medicina ambulatoria debido a la alta incidencia de heridas, como cortes irregulares o lesiones profundas ocasionadas por accidentes domésticos.
+
+Al igual que en otros procedimientos quirúrgicos, las suturas implican riesgos que dependen de diversos factores, como la complejidad de la herida, las condiciones del entorno y la pericia del profesional a cargo. Estos riesgos incluyen infecciones, dehiscencias o necrosis si no se utilizan técnicas y materiales adecuados \cite{GONZALEZ-CELY2018}. El proceso requiere un monitoreo constante para mitigar complicaciones, incluso en entornos controlados, como salas de operaciones o consultorios. Es por ese motivo que en los últimos años, han surgido diversas innovaciones enfocadas en mejorar el proceso de sutura, como el desarrollo de hilos especializados, técnicas de cierre sin costura y el uso de fármacos que aceleran la cicatrización. 
+
+Dentro de estas innovaciones se encuentra la implementación de secuencias apoyadas por elementos robóticos, a fin de incrementar el nivel de precisión en tareas quirugicas y controlar de mejor manera algunos factores de complejidad quirugica como el monitoreo constante o las complicaciones del entorno en las que se realizan las suturas. Ejemplos notables incluyen el robot Da Vinci y el sistema robóticob Zeus, que han permitido intervenciones quirúrgicas menos invasivas y con mayor precisión \cite{DaVinci}\cite{DaVinci_tumor_2024}. Robots diseñados para áreas específicas, como el NeuroMate para neurocirugía y el Robodoc para ortopedia, han sentado precedentes en el uso de tecnologías robóticas en suturas \cite{Historia_de_los_robots_cirujanos}. Estudios recientes han explorado modificaciones en robots como el IBIS para realizar suturas semiautomáticas, optimizando tiempos de manipulación y reduciendo riesgos asociados.
+
+En conclusión, los avances tecnológicos en técnicas de sutura y la integración de la robótica abren nuevas posibilidades para mejorar los resultados clínicos, reducir complicaciones y acelerar los procesos de recuperación.
+
+\introsection{Descripción de la situación problemática}
+
+
+Las heridas abiertas, especialmente en extremidades, constituyen una causa recurrente de atención en emergencias hospitalarias. Según un estudio de 2018 realizado en cinco departamentos de emergencia en Estados Unidos, estas lesiones ocuparon el noveno lugar en la lista de motivos de consulta, con 2.7 millones de casos registrados \cite{Emergency_reasons}. Este alto volumen de atención representa un desafío significativo para el sistema de salud, particularmente en términos de tiempo requerido para el tratamiento, lo que puede generar sobrecarga operativa en emergencias.
+
+El método más comúnmente empleado para tratar estas lesiones es la sutura, un procedimiento que, aunque efectivo, implica desgaste por parte del personal médico y técnico. La repetitividad inherente a la realización de suturas incrementa el riesgo de desarrollar trastornos músculo-esqueléticos en el personal médico cirujano o desarrollo prematuro de transtornos psicológicos como el síndrome burnout \cite{Burnout_España}\cite{Burnout_Peru}, presente tambien en el personal técnico. Hasta un 70\% de los cirujanos en procedimientos laparoscópicos han reportado síntomas de estos trastornos, lo que evidencia la carga física y mental asociada al trabajo repetitivo \cite{Desorden_Muscoesqueletico_Warren}. En entornos de emergencia, esta situación se agrava debido a limitaciones de espacio y posturas subóptimas, aumentando el riesgo de errores y complicaciones durante el procedimiento.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/Estadistica2018.png}
+    \caption{Ranking de los 20 casos más comunes en visitas al Área de Emergencias en 2018\cite{Emergency_reasons}}
+    \label{fig:enter-label}
+\end{figure}
+
+
+Adicionalmente, el tiempo necesario para realizar suturas varía considerablemente según la complejidad de la herida y el área afectada \cite{Forsch}. En escenarios de alta demanda, esta variabilidad puede extender los tiempos de atención, reduciendo la eficiencia operativa de los servicios de emergencia. Este impacto no solo afecta la experiencia del paciente, sino también la capacidad del sistema para atender casos críticos con rapidez y efectividad.
+
+En este contexto, resulta imperativo buscar soluciones tecnológicas que optimicen el proceso de sutura, mitiguen la carga física sobre los profesionales de la salud y reduzcan el tiempo de atención. La incorporación de herramientas robóticas y sistemas teleoperados se perfila como una estrategia prometedora para abordar estas problemáticas, mejorando tanto la eficiencia como la seguridad del procedimiento.
+            
+\introsection{Formulación del problema} 
+
+La alta incidencia de heridas abiertas, especialmente en extremidades, constituye una de las principales causas de atención médica en emergencias, como lo reflejan las estadísticas del National Hospital Ambulatory Medical Care Survey (NHAMCS) \cite{Informe_emergencia_2021}. Estas heridas son tratadas, en su mayoría, mediante procedimientos manuales de sutura, los cuales presentan diversas limitaciones. Por un lado, la naturaleza repetitiva del procedimiento incrementa el riesgo de desarrollar trastornos músculo-esqueléticos en los profesionales de la salud, afectando hasta el 70 \% de los cirujanos que realizan procedimientos laparoscópicos \cite{Desorden_Muscoesqueletico_Warren}. Por otro lado, los tiempos de atención prolongados, derivados de la variabilidad técnica y la complejidad de las heridas, sobrecargan los servicios de emergencia, reduciendo su capacidad de respuesta ante otros casos críticos \cite{Informe_emergencia_2021}.
+
+Adicionalmente, la precisión y calidad de la sutura manual dependen en gran medida de la experiencia del personal médico, lo que puede incrementar la probabilidad de complicaciones postoperatorias, como infecciones, dehiscencias y necrosis, en ausencia de materiales o técnicas adecuadas \cite{Instru_quirurgica}. Este panorama resalta la necesidad de innovaciones tecnológicas que optimicen el proceso de sutura, reduzcan los riesgos para los pacientes y mejoren las condiciones laborales del personal médico.
+
+En este contexto, los avances en robótica quirúrgica y teleoperación han mostrado un gran potencial para abordar estas problemáticas. Sistemas como el robot Da Vinci han demostrado mejorar la precisión y eficiencia en procedimientos quirúrgicos complejos \cite{DaVinci}, mientras que investigaciones recientes han explorado el uso de manipuladores teleoperados con retroalimentación háptica para procedimientos de sutura automatizados, reduciendo los tiempos y riesgos asociados \cite{SIngle}. Sin embargo, aún existe un vacío en la implementación de soluciones específicamente diseñadas para optimizar la sutura en heridas superficiales de emergencia.
+
+Por tanto, el problema central identificado es la necesidad de desarrollar e implementar un sistema robótico teleoperado con retroalimentación háptica que permita:
+\begin{itemize}
+    \item Mejorar la precisión y eficiencia del procedimiento de sutura.
+    \item Reducir la carga física sobre los profesionales médicos.
+    \item Minimizar las complicaciones asociadas al cierre manual de heridas.
+\end{itemize} %aunque no se si esto se puwede confundir con objetivos
+
+La solución a este problema puede transformar significativamente la atención médica en entornos de emergencia, garantizando una mayor seguridad para los pacientes y condiciones laborales óptimas para el personal de salud.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\introsection{Objetivos de investigación}
+
+El objetivo del presente trabajo de tesis es integrar y controlar un prototipo de sistema robótico con módulo de teleoperación para la actividad de sutura superficial, haciendo uso de dos equipos hápticos y dos robots manipuladores.
+
+%El objetivo principal del presente trabajo de tesis es desarrollar un prototipo de MóDULO DE CONTROL HAPTICO TELEOPERADO EN UN SISTEMA ROBÓTICO PARA REDUCCIóN DE RIESGO EN SUTURAS DE AREAS SUPERFICIALES.  
+
+\introsection{Objetivos específicos}
+
+\begin{itemize}
+    \item {Diseño y ajuste del banco de pruebas que incluye terminales de sujeción adaptados al módulo háptico para manipulación en entornos de sutura, y adaptación del efector final de los dos brazos robóticos UR5 para poder hacer uso de la pinza laparoscópicas genéricas.} %tangible, porcentaje avance de diseño
+    \item {Comparar arquitecturas de control (optimización, SMC, impedancia) para el seguimiento de trayectoria del UR5 en el espacio cartesiano.} %tangible, avance de diseño
+    \item {Establecer la arquitectura maestro-esclavo entre el Geomagic Touch (USB) y el UR5 (Ethernet) mediante ROS 2, con control de los grippers Robotiq vía Modbus RTU.}%tangible, avance de diseño
+    \item {Desarrollar un sistema de teleoperación maestro/esclavo entre el módulo háptico y el UR5.} %tangible, avance de diseño
+    \item {Integrar los módulos de teleoperación, control y hardware para ejecutar tareas de sutura superficial en entorno controlado.} %tangible, avance de diseño
+
+
+\end{itemize}
+
+\introsection{Justificación}
+
+El departamento de urgencias médicas recibe numerosos casos de pacientes con heridas abiertas, lo que obliga al personal médico a realizar suturas repetidamente a lo largo de su jornada. Estas actividades repetitivas pueden generar trastornos músculo-esqueléticos en los cirujanos, afectando su bienestar físico y, potencialmente, su rendimiento.
+
+Con la implementación de un módulo háptico, se busca mejorar la eficiencia en la atención médica, ya que el robot manipulador asistirá al cirujano, reduciendo el margen de error y facilitando parte de las tareas repetitivas. De este modo, no solo será posible mitigar las molestias físicas que afectan al personal médico, sino también proporcionar un mayor nivel de seguridad a los pacientes durante el procedimiento.
+
+Asimismo, se busca incorporar la retroalimentación háptica para que el cirujano, o el personal médico encargado de la sutura, pueda percibir el nivel de agarre o presión que experimenta el robot. Esto permitirá al profesional determinar con mayor precisión la fuerza adecuada para realizar la sutura de manera correcta y controlada. De este modo, se recreará la sensación de manipular instrumentos quirúrgicos reales, brindando al cirujano información táctil adicional que le ayudará a ejecutar las tareas con mayor exactitud y seguridad, ya que contará con más información aparte de la visual.
+
+
+\introsection{Alcance y limitaciones / restricciones} % la sutura debe implicar casos de lab, las limitaciones tecnicas y biologicoas/medicas, hasta donde llegaremos con el proyecto. Limitaciones de $$, techno, alcance energético, al ser prototipo no se tendrá tanto cuidado en que plcas específicas son más econónomicas computaionlamnete.
+
+Para el presente proyecto de tesis, se ha determinado el uso de los robots manipuladores UR5 de Universal Robotics, dado que estos se encuentran disponibles en la universidad. En consecuencia, no se realizará una comparación o evaluación de otros robots manipuladores en cuanto a su superioridad sobre el UR5 para el propósito de costura.
+
+Asimismo, se utilizará el dispositivo háptico Touch de la empresa 3D Systems, con el propósito de modificarlo para adecuarlo a las necesidades de los cirujanos. Estas modificaciones, tanto mecánicas como electrónicas, no buscarán en esta etapa optimizaciones en términos de estética, eficiencia energética o computacional; en cambio, se priorizará el correcto funcionamiento del módulo háptico. Para el prototipado, se emplearán microcontroladores y sensores que permitan implementar las funciones básicas del sistema. Estos serán los disponibles en los laboratorios en el departamento de ingeniería mecatrónica y electrónica. En caso no estén disponibles se evaluará la compra acorde a la capacidad económica disponible de los tesistas.
+
+El proyecto no será implementado en centros médicos. En su lugar, se evaluará su éxito utilizando kits de entrenamiento empleados por estudiantes de medicina para practicar suturas. Se tomará como consideración que las heridas a tratar en este proyecto son heridas tanto superficiales  y poco profundas; además, para facilidad de aplicación, la herida será del tipo limpia y de evolución complicada. 
+
+El proyecto será considerado exitoso si el responsable logra realizar una sutura utilizando alguno de los procesos automatizados propuestos en el módulo. Cabe destacar que esta etapa del desarrollo no contempla pruebas con pacientes humanos, aunque se espera que en el futuro dicha aplicación sea factible.
+
+%

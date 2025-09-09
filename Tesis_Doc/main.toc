@@ -1,0 +1,60 @@
+\hfill {Pág.}\par 
+\babel@toc {spanish}{}\relax 
+\babel@toc {spanish}{}\relax 
+\vspace {1.5em}
+\contentsline {section}{\bfseries RESUMEN }{1}{chapter*.1}%
+\contentsline {section}{\bfseries ABSTRACT }{2}{chapter*.2}%
+\contentsline {section}{\bfseries INTRODUCCIÓN }{3}{chapter*.3}%
+\contentsline {section}{\bfseries Presentación del tema de investigación }{3}{chapter*.3}%
+\contentsline {section}{\bfseries Descripción de la situación problemática }{4}{chapter*.3}%
+\contentsline {section}{\bfseries Formulación del problema }{6}{figure.caption.4}%
+\contentsline {section}{\bfseries Objetivos de investigación }{7}{figure.caption.4}%
+\contentsline {section}{\bfseries Objetivos específicos }{8}{figure.caption.4}%
+\contentsline {section}{\bfseries Justificación }{8}{figure.caption.4}%
+\contentsline {section}{\bfseries Alcance y limitaciones / restricciones }{9}{figure.caption.4}%
+\contentsline {chapter}{\numberline {I}REVISIÓN CRÍTICA DE LA LITERATURA}{11}{chapter.5}%
+\contentsline {section}{\numberline {1.1}Antecedentes}{11}{section.6}%
+\contentsline {section}{\numberline {1.2}Estado del Arte}{12}{section.7}%
+\contentsline {subsection}{\numberline {1.2.1}Sistemas robóticos teleoperados}{12}{subsection.8}%
+\contentsline {subsection}{\numberline {1.2.2}Sistemas robóticos aplicados a cirugías}{12}{subsection.9}%
+\contentsline {subsection}{\numberline {1.2.3}Reconocimiento y visión computacional en cirugías}{13}{subsection.10}%
+\contentsline {subsection}{\numberline {1.2.4}Inclusión de la tecnología Háptica}{14}{subsection.11}%
+\contentsline {chapter}{\numberline {II}MARCO TEÓRICO}{15}{chapter.12}%
+\contentsline {section}{\numberline {2.1}Suturas externas}{15}{section.13}%
+\contentsline {subsection}{\numberline {2.1.1}Herramientas comunes}{16}{subsection.14}%
+\contentsline {subsection}{\numberline {2.1.2}Características a considerar}{17}{subsection.16}%
+\contentsline {subsection}{\numberline {2.1.3}Técnicas de aplicación de suturas}{17}{subsection.18}%
+\contentsline {section}{\numberline {2.2}Definición de los sistemas Háptico}{18}{section.24}%
+\contentsline {subsection}{\numberline {2.2.1}Principios de Funcionamiento de la Retroalimentación Háptica en Robótica}{18}{subsection.25}%
+\contentsline {subsection}{\numberline {2.2.2}Caracterización Técnica del Geomagic Touch}{19}{subsection.26}%
+\contentsline {subsection}{\numberline {2.2.3}Interfaz Háptica-Robótica para Procedimientos Médicos}{21}{subsection.29}%
+\contentsline {subsection}{\numberline {2.2.4}Adaptación de los Manipuladores para Control de Sutura mediante Háptica}{21}{subsection.30}%
+\contentsline {section}{\numberline {2.3}Modelo Cinemático del robot serial}{22}{section.32}%
+\contentsline {subsection}{\numberline {2.3.1}Matriz de Transformación}{23}{subsection.33}%
+\contentsline {subsection}{\numberline {2.3.2}Cinemática Directa}{26}{subsection.39}%
+\contentsline {subsection}{\numberline {2.3.3}Método Denavit-Hartenberg}{27}{subsection.42}%
+\contentsline {subsection}{\numberline {2.3.4}Cinemática Inversa}{30}{subsection.50}%
+\contentsline {section}{\numberline {2.4}Modelo Dinámico del robot serial }{32}{section.54}%
+\contentsline {subsection}{\numberline {2.4.1}Newton Euler}{32}{subsection.55}%
+\contentsline {section}{\numberline {2.5}Control por Modo Deslizante}{34}{section.57}%
+\contentsline {subsection}{\numberline {2.5.1}Introducción al control por modo deslizante (SMC)}{34}{subsection.58}%
+\contentsline {subsection}{\numberline {2.5.2}Diseño del control SMC}{35}{subsection.59}%
+\contentsline {section}{\numberline {2.6}Control por Impedancia}{38}{section.61}%
+\contentsline {chapter}{\numberline {III}MARCO REFERENCIAL (LEGAL, GEOGRÁFICO, HISTÓRICO) (opcional)}{40}{chapter.63}%
+\contentsline {chapter}{\numberline {IV}MARCO METODOLÓGICO}{41}{chapter.64}%
+\contentsline {section}{\numberline {4.1}Metodología de desarrollo basada en la norma VDI 2206}{41}{section.65}%
+\contentsline {section}{\numberline {4.2}Diseño del sistema robótico}{43}{section.71}%
+\contentsline {section}{\numberline {4.3}Implementación del sistema de control}{44}{section.73}%
+\contentsline {subsection}{\numberline {4.3.1}Control con optimización}{44}{subsection.74}%
+\contentsline {section}{\numberline {4.4}Validación experimental}{45}{section.77}%
+\contentsline {chapter}{\numberline {V}RESULTADOS}{46}{chapter.78}%
+\contentsline {section}{\numberline {5.1}Simulación del brazo robótico UR5 en Gazebo}{46}{section.79}%
+\contentsline {section}{\numberline {5.2}Diseño de controlador por cinemática inversa y diferencial}{47}{section.81}%
+\contentsline {section}{\numberline {5.3}Integración del dispositivo háptico para la teleoperación del efector final}{49}{section.84}%
+\contentsline {section}{\numberline {5.4}Integración de teleoperación y control por optimización en entorno físico}{53}{section.90}%
+\contentsline {section}{\numberline {5.5}Diseño y fabricación del adaptador de una pinza genérica para el gripper Robotiq 2F‑85 para UR5}{55}{section.95}%
+\contentsline {section}{\numberline {5.6}Diseño y fabricación del adaptador de agarre para el efector final del Geomagic Touch}{57}{section.101}%
+\contentsline {section}{\numberline {5.7}Pruebas con el banco de trabajo}{59}{section.106}%
+\contentsline {section}{\bfseries CONCLUSIONES }{60}{chapter*.107}%
+\contentsline {section}{\bfseries RECOMENDACIONES}{62}{chapter*.108}%
+\contentsline {section}{\bfseries ANEXOS}{68}{chapter*.110}%

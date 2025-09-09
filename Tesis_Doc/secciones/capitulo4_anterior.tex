@@ -1,0 +1,59 @@
+\chapter{MARCO METODOLÓGICO}
+
+En este capítulo se describe de manera detallada la metodología empleada para diseñar, implementar y evaluar un sistema robótico teleoperado con retroalimentación háptica, orientado a mejorar la precisión y seguridad en procedimientos de sutura en heridas superficiales. La ruta metodológica sigue un enfoque experimental, en el que se desarrollan y validan componentes mediante simulaciones avanzadas y análisis cuantitativos que aseguren la viabilidad técnica del sistema.
+
+
+
+
+\section{Consideraciones para la comunicación de datos}
+
+La comunicación de datos es crucial para la operación y la sincronización de los diferentes componentes del sistema robótico. En el caso del UR5, es importante establecer una dependencia entre nodos suscriptores y publicadores, y definir correctamente las señales de control dentro de los rangos permitidos para garantizar la interacción entre el robot y dispositivos externos, como el dispositivo háptico.
+
+\subsection{Configuración de nodos}
+La configuración de nodos en ROS 2 Humble se realizará usando principalmente C y C++, ya que es prioritario optimizar la velocidad de procesamiento de los programas diseñados, un aspecto crítico para definir la frecuencia máxima de trabajo del controlador. Una frecuencia alta asegura una reacción óptima para el sistema. Cada nodo debe estar diseñado para publicar y suscribirse a los tópicos correspondientes utilizando el tipo de mensaje adecuado para los datos que se transmitirán. Además, será necesario evaluar el uso de mensajes existentes o la creación de un paquete propio para casos específicos.
+
+\subsection{Señales de control}
+El robot UR5 admite únicamente entradas de posición y velocidad debido a restricciones del fabricante, una limitación que también se aplica a sus modelos de simulación. Por lo tanto, será necesario revisar las especificaciones de las bibliotecas utilizadas para enviar señales, ya sea mediante la publicación de valores articulares en un tópico o mediante la llamada a servicios predefinidos.
+
+\section{Consideraciones para la simulación}
+Las simulaciones son esenciales para probar y optimizar algoritmos de control antes de la implementación física del UR5. Es fundamental definir correctamente los parámetros físicos del robot y configurar un entorno de simulación que refleje condiciones reales para validar los resultados.
+    \subsection{Definición de parámetros físicos del UR5}
+    
+Los parámetros físicos del robot, como la configuración articular y la inercia de los eslabones, son proporcionados por Universal Robots y están disponibles en su modelo de simulación. Estos parámetros se emplean en la configuración cinemática del robot, utilizando la matriz de transformación basada en el método de Denavit-Hartenberg.
+
+El modelo virtual del robot está definido en un formato compatible con ROS 2 Humble, lo que permite simular características como inercia, centros de masa y configuraciones articulares para obtener resultados precisos en el entorno virtual.
+
+    \subsection{Configuración del entorno de simulación}
+El entorno de simulación se establecerá con Gazebo v11 y ROS 2 Humble, replicando condiciones físicas como gravedad, colisiones y sensores virtuales disponibles en las bibliotecas de Universal Robots.
+
+
+El escenario incluirá elementos físicos como mesas y herramientas médicas para observar la interacción del robot en procedimientos de sutura. Estos modelos se obtendrán de las librerías públicas de Gazebo, evitando la necesidad de diseñarlos desde cero.
+\section{Método de control}
+Dadas las limitaciones de los dispositivos utilizados, como el UR5, se evaluarán métodos de control en alto nivel, ya que no es posible comandar señales directas como voltaje, corriente o torque a sus motores debido a su arquitectura cerrada. Sin embargo, en el Geomagic Touch será posible enviar señales de control de torque, lo que permitirá implementar un control dinámico en este dispositivo.
+
+
+
+\subsection{Diseño del controlador para el UR5}
+Dado que el UR5 recibe comandos de posición y velocidad angular, se propone un optimizador para mejorar los parámetros de su controlador de bajo nivel proporcionado por el fabricante. Esto permitirá optimizar el rendimiento en las operaciones. Además, se implementarán filtros para evitar que pequeñas variaciones de comando, originadas por el cirujano durante la teleoperación, afecten el desempeño.
+
+Asimismo, se evaluará una transformación que escale los movimientos del dispositivo háptico al espacio de trabajo del UR5, asegurando que el cirujano pueda manipular las herramientas con precisión durante toda la operación.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/ur5_diagram.png}
+    \caption{Diagrama de bloques para el control del UR5}
+    \label{fig:enter-label}
+\end{figure}
+
+\subsection{Diseño del controlador para el Geomagic Touch}
+Dado que el dispositivo permite actuar en tres articulaciones mediante torque, se evaluará una modificación de su punta desarmable para evitar deslizamientos indeseados en caso de que el cirujano lo suelte. Esto garantizará estabilidad y precisión durante el procedimiento.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/haptic_diagram.png}
+    \caption{Diagrama de bloques para el control del Geomagic touch}
+    \label{fig:enter-label}
+\end{figure}
+
+
+

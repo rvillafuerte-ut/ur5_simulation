@@ -1,0 +1,85 @@
+\chapter{MARCO METODOLÓGICO}
+
+En este capítulo se describe de manera detallada la metodología empleada para diseñar, implementar y evaluar un sistema robótico teleoperado con retroalimentación háptica, orientado a mejorar la precisión y seguridad en procedimientos de sutura en heridas superficiales. La ruta metodológica sigue un enfoque experimental, en el que se desarrollan y validan componentes mediante simulaciones en entornos que toman en consideración variables físicas como la masa, gravedad e inercia y análisis cuantitativos que aseguren la viabilidad técnica del sistema acorde a los parámetros de desempeño del controlador para el seguimiento de la trayectoria.
+
+
+\section{Metodología de desarrollo basada en la norma VDI 2206}
+
+El desarrollo del sistema robótico se estructura siguiendo la norma VDI 2206, una metodología reconocida para el diseño de sistemas mecatrónicos que propone un enfoque en “V” modificado. Esta metodología permite una integración temprana y concurrente de los dominios mecánico, electrónico y de control, promoviendo la validación continua desde las etapas iniciales del diseño.
+
+La metodología contempla una fase exploratoria, donde se analizan los principios físicos, conceptos funcionales y alternativas tecnológicas, y una fase sistemática de diseño, donde se desarrollan modelos del sistema, simulaciones, implementación físic a y validación final.
+
+En este proyecto, la fase exploratoria incluyó el análisis de los requerimientos del procedimiento de sutura, la evaluación de dispositivos candidatos (UR5, Geomagic Touch) y la definición preliminar de principios físicos relevantes (fuerzas de interacción, precisión posicional, escalamiento de movimientos). Posteriormente, en la fase de desarrollo sistemático, se aplicó la metodología en cuatro etapas clave:
+
+ \begin{enumerate}
+    \item Diseño conceptual: definición de arquitectura del sistema, identificación de comunicación entre componentes y especificaciones funcionales.
+    \item Modelado y simulación: desarrollo del modelo dinámico del UR5 y simulación del entorno en Gazebo con los elementos 3d añadidos.
+    \item Implementación: integración de nodos ROS 2, C++, librerías oficiales de los equipos utilizados y protocolos de comunicación entre estos.
+    \item Validación: pruebas en escenarios reales en el laboratorio de Ingeniería Mecatrónica para medir precisión, respuesta dinámica y calidad de la retroalimentación háptica.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/vdi_muy_basico.png}
+    \caption{Esquema de la metodología VDI 2206}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{Diseño del sistema robótico}
+
+En esta fase inicial se establecen los requerimientos funcionales y técnicos del sistema robótico, considerando las demandas propias del procedimiento de sutura. Se seleccionan los dispositivos principales, incluyendo el manipulador UR5 y el dispositivo háptico Geomagic Touch, definiendo sus roles dentro del sistema. Además, se desarrolla un modelo cinemático y dinámico del UR5 utilizando el método de Denavit-Hartenberg, lo que permite determinar la posición en tiempo real del efector final con base en los valores articulares y facilitar su integración en la plataforma de simulación.
+
+Paralelamente, se configura un entorno virtual en Gazebo v11, utilizando ROS 2 Humble como marco de trabajo. Este entorno replica las condiciones físicas reales, como la gravedad, las colisiones y las interacciones con objetos simulados, permitiendo realizar pruebas preliminares en un contexto controlado y seguro. La simulación incluye elementos como bloques, mesas, sillas y diversas herramientas, extraídas de bibliotecas públicas, para representar de manera realista las tareas que llevará a cabo el sistema.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/comunication_desired.png}
+    \caption{Comunicación de tópicos y nodos planteada}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{Implementación del sistema de control}
+
+El desarrollo del control se centra en dos dispositivos clave: el manipulador UR5 y el Geomagic Touch. Para el UR5, se implementa un controlador basado en dinámica inversa que permita generar movimientos precisos en función de las entradas de posición y velocidad admitidas por el fabricante. Este controlador se complementa con un módulo de optimización para ajustar los parámetros de desempeño, logrando un balance adecuado entre velocidad de respuesta y precisión.
+
+En el caso del dispositivo háptico, se calibra su capacidad para enviar y recibir señales de posición y fuerza, estableciendo un puente efectivo entre el usuario y el manipulador robótico. Además, se desarrollan transformaciones que escalan los movimientos del dispositivo háptico al espacio de trabajo del UR5, garantizando que las acciones del operador se reflejen fielmente en la teleoperación.
+
+\subsection{Control con optimización}
+
+Para poder alcanzar la posición deseada del efector final del manipulador UR5 se plantea un problema de minimización cuadrática ponderado para dos tareas, minimizar el error de posición y el error de orientación respecto a la velocidad articular. Se definen dos matrices de pesos $\boldsymbol{W_p}$ para la posición y $\boldsymbol{W_o}$ para la orientación. 
+    \begin{mini*}|s|[0]
+        {\boldsymbol{\dot{q}}}{\boldsymbol{W_p}\|\boldsymbol{J_p(q)}\boldsymbol{\dot{q}} - \boldsymbol{e_p}\|^2 + \boldsymbol{W_o}\|\boldsymbol{J_o(q)}\boldsymbol{\dot{q}} - \boldsymbol{e_o}\|^2}
+        {}
+        {\label{eq:minimizationProblem1}}
+    \end{mini*}
+    
+    Se define la \textbf{matriz Hessiana}:
+    
+    $\boldsymbol{H} =\boldsymbol{W_p}\boldsymbol{J_p(q)}^{T}\boldsymbol{W_p}\boldsymbol{J_p(q)} + \boldsymbol{W_o}\boldsymbol{J_o(q)}^{T}\boldsymbol{W_o}\boldsymbol{J_o(q)} $,  
+
+    donde $\boldsymbol{J_p(q)}$ es la parte del Jacobiano asociada a la posición del efector final y $\boldsymbol{J_o(q)}$ es la parte del Jacobiano asociada a su orientación  
+    
+    y el \textbf{gradiente} 
+    
+    $\nabla g(\boldsymbol{q}) = -\boldsymbol{W_p}\boldsymbol{J_p(q)}^{T}\boldsymbol{W_p}\boldsymbol{e_p}-\boldsymbol{W_o}\boldsymbol{J_o(q)}^{T}\boldsymbol{W_o}\boldsymbol{e_o}$ 
+
+    donde $\boldsymbol{e_p}$ es el error de la posición del efector final y $\boldsymbol{e_o}$ es su error de orientación(representado en parte vectorial).
+    
+    Siendo la función a minimizar 
+    \begin{mini}|s|[0]
+        {\boldsymbol{\dot{q}}}{\frac{1}{2}\boldsymbol{\dot{q}}^{T}\boldsymbol{H} + \nabla g(\boldsymbol{q})\boldsymbol{\dot{q}}}
+        {}
+        {\label{eq:minimizationProblem}}
+    \end{mini}
+
+    Finalmente, se puede aplicar recursividad mediante un parámetro $\alpha$ que determinará el tamaño de paso en el avance del optimizador hasta encontrar los valores articulares adecuados.
+    \begin{equation}
+        \boldsymbol{q}_{k+1} = \boldsymbol{q}_k + \alpha\boldsymbol{\dot{q}}_k
+    \end{equation}
+    
+
+\section{Validación experimental}
+
+La fase final está dedicada a la evaluación del sistema en simulaciones realistas. Se diseñan experimentos que reproducen escenarios de sutura, variando las propiedades mecánicas de los bloques simulados para medir el desempeño del sistema bajo diferentes condiciones. Durante las pruebas, se registran métricas clave como error posicional, tiempo de respuesta y calidad de la retroalimentación háptica.
+
+Los resultados obtenidos como el tiempo de sutura, la fiabilidad de la retroalimentación háptica y la calidad de la sutura se analizan para determinar la precisión y confiabilidad del sistema propuesto . Asimismo, se identifican posibles limitaciones técnicas que podrían abordarse en futuras iteraciones.

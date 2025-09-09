@@ -1,0 +1,355 @@
+\chapter{RESULTADOS}
+
+En este capítulo se mostrarán los resultados de las pruebas realizadas sobre el banco de trabajo para el seguimiento de trayectorias en un entorno controlado. Asimismo, se compara el comportamiento de las arquitecturas de control propuestas en trayectorias curvas y
+
+
+los controladores usados para el control cinemático y el método utilizado para la comunicación del dispositivo háptico con el entorno simulado.
+
+
+
+\section{Simulación del brazo robótico UR5 en Gazebo}
+Para llevar a cabo las pruebas de movilidad y seguimiento a la trayectoria, se llevaron a cabo pruebas en el entorno Gazebo utilizando el sistema ROS 2 Humble, el cual posibilita leer y enviar acciones a parámetros como rotación o velocidad, teniendo en cuenta características físicas como masa o inercia del robot y simulando los efectos de fricción o colisión.
+
+Se logró cargar el modelo del robot UR5, sub modelo e, y asegurar el correcto cargado de los paquetes necesarios para la simulación. Así como los programas que contienen los comandos para enviar movimiento a las articulaciones.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/gaz_ur5e.png}
+    \caption{Simulación en Gazebo}
+    \label{fig:enter-label}
+\end{figure}
+
+
+\section{Diseño de controlador por cinemática inversa y diferencial}
+
+Se modeló un sistema de control cinemático, puesto que el robot ur5 solo admite la entrada de señales de posición o velocidad. El sistema de control hace uso de cinemática directa para convertir las posiciones angulares de las articulaciones al espacio cartesiano y poder calcular el error y posteriormente el cambio del error. Esto para poder caracterizar al controlador con un control proporcional y derivativo, permitiendo el seguimiento a una trayectoria deseada.
+
+Se logró la implementación del controlador en el entorno simulado de Gazebo obteniendo un error al seguimiento en los 3 ejes cartesianos dentro de un rango de 0.01 m con una referencia sinusoidal
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/Pos.png}
+    \caption{Seguimiento a la trayectoria en los 3 ejes}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/errores.png}
+    \caption{Error al seguimiento a la trayectoria}
+    \label{fig:enter-label}
+\end{figure}
+
+\section{Integración del dispositivo háptico para la teleoperación del efector final}
+
+Dado que se requiere una alta frecuencia para la comunicación de datos entre los dispositivos, se utilizaron librerías principalmente basadas en C/C++. De esta forma, se logró mantener una comunicación con 1 kHz de frecuencia para la lectura de la posición y orientación del efector final, los ángulos articulares de cada una de las articulaciones que dispone, y el comando para requerir las fuerzas de los 3 grados de libertad actuados que dispone. Esta librería cuenta con las dependencias de las funciones creadas por la empresa 3D Systems para la manipulación a bajo nivel de las características del dispositivo háptico. De esta forma, se obtuvieron los nodos y tópicos mostrados en la Figura \ref{fig:haptic_topics}.
+
+Por otro lado, dado que la lectura de la posición en su estado base (Figura \ref{fig:Geomagic_touch_base}) del efector final se encuentra definida como el origen en su sistema de referencia, no será posible comunicar directamente las posiciones para la manipulación del dispositivo háptico. De esta forma, se calibró una posición inicial deseada por el usuario como un punto de origen para tomar en consideración únicamente la diferencia de posición actual y el origen del módulo háptico.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/haptic_topics.jpeg}
+    \caption{Diagrama de nodos y tópicos para el control del Geomagic Touch}
+    \label{fig:haptic_topics}
+\end{figure}
+
+Se calibraron los parámetros de desempeño del controlador que brinda el UR5 por defecto de fábrica para que establezca la posición deseada en 0.1 segundos y comande la posición cada 0.5 segundos. Estos parámetros se determinaron para que el seguimiento sea lo más rápido posible sin perder precisión, dando suficiente tiempo para que se pueda establecer en la posición deseada. Además, cabe resaltar que en estas primeras pruebas solo se consideró el control de la posición, sin la orientación.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/teleop_square.png}
+    \caption{Seguimiento de trayectoria cuadrada con el efector final del dispositivo háptico}
+    \label{fig:teleop_square}
+\end{figure}
+
+Como se puede observar en la Figura \ref{fig:teleop_square}, se logró el seguimiento de la trayectoria al intentar realizar un cuadrado con el efector final del dispositivo háptico. Asimismo, en las gráficas mostradas en las Figuras \ref{fig:x_square_teleop}, \ref{fig:y_square_teleop} y \ref{fig:z_square_teleop}, se puede observar que el error durante el seguimiento de trayectoria resultó en todo momento menor a 10 cm. Dado el carácter de la investigación, se buscará que el controlador sea más preciso para que el cirujano pueda mantener un error mínimo durante todo el seguimiento de la trayectoria. Sin embargo, se observó que el desfase para el seguimiento de la trayectoria resultó menor a 0.5 segundos, lo cual resulta óptimo para el seguimiento.
+
+Se considera que, aunque estos parámetros fueron simulados en un entorno de simulación realista, se tendrán que calibrar en el dispositivo real, dado que este puede contar con ligeras variaciones mecánicas que podrían afectar el desempeño del controlador propuesto.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/x_haptic_teleop.png}
+    \caption{Seguimiento en el eje X de la trayectoria cuadrada}
+    \label{fig:x_square_teleop}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/y_haptic_teleop.png}
+    \caption{Seguimiento en el eje Y de la trayectoria cuadrada}
+    \label{fig:y_square_teleop}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{images/z_haptic_teleop.png}
+    \caption{Seguimiento en el eje Z de la trayectoria cuadrada}
+    \label{fig:z_square_teleop}
+\end{figure}
+
+\section{Integración de teleoperación y control por optimización en entorno físico}
+
+El sistema completo consta de la comunicación por medio de ROS2 de los nodos del módulo Geomagic Touch y los nodos de control del UR5; mediante el control por optimización HQP se implementó el seguimiento a la referencia de posición en el espacio cartesiano del módulo háptico transformado al espacio de trabajo del robot UR5 y tomando como posición inicial la del efector final del robot.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.75\linewidth]{images/implementacionXYZ.png}
+    \caption{Seguimiento en el espacio cartesiano}
+    \label{fig:xyz_impl}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/impl_X.png}
+    \caption{Error en X [mm] vs Tiempo [s]}
+    \label{fig:err_x}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/err_y_impl.png}
+    \caption{Error en Y [mm] vs Tiempo [s]}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/err_z_imp.png}
+    \caption{Error en Z [mm] vs Tiempo [s]}
+    \label{fig:enter-label}
+\end{figure}
+
+
+
+\section{Diseño y fabricación del adaptador de una pinza genérica para el gripper Robotiq 2F‑85 para UR5}
+
+El diseño de las piezas se realizó utilizando el software Fusion 360 de la empresa Autodesk. Asímismo, se utilizó instrumentos de presición de 0.01 militetros para la medición de los elementos físcos que se buscan adaptar. Estas piezas 3D fueron impresas con PLA al 50\% de desidad en el laboratorio de mecatrónica 201 de la UTEC.
+
+Las Figuras \ref{fig:vistas_soporte_pinza}, \ref{fig:vistas_pinza_slider}, \ref{fig:vistas_pinza_seguro_inf} y \ref{fig:vistas_pinza_seguro_sup} muestran las vistas principales del soporte diseñado para la adaptación mecánica de una pinza genérica.
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{secciones/pinza_gripper_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{secciones/pinza_gripper_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{secciones/pinza_gripper_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del soporte principal de la pinza.}
+    \label{fig:vistas_soporte_pinza}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/dezlizador_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/dezlizador_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/dezlizador_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del slider de la pinza.}
+    \label{fig:vistas_pinza_slider}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_inf_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_inf_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_inf_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del seguro inferior que acopla la pinza.}
+    \label{fig:vistas_pinza_seguro_inf}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_sup_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_sup_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/seguro_pinza_sup_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del seguro superior que acopla la pinza.}
+    \label{fig:vistas_pinza_seguro_sup}
+\end{figure}
+
+La Figura \ref{fig:vistas_pinza_ensamble} muestra el resultado final del acople mecánico sobre el gripper 2F85.
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.9\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/ensamble_try3 v11.png}
+        \caption*{(a)  Ensamblaje final gripper 2f 85 de la empresa Robotiq}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.9\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/handegripp v6.png}
+        \caption*{(b) Ensamblaje final gripper hand-e de la empresa Robotiq}
+    \end{minipage}
+   \caption{Vistas principales del ensamble final.}
+    \label{fig:vistas_pinza_ensamble}
+\end{figure}
+
+\section{Diseño y fabricación del adaptador de agarre para el efector final del Geomagic Touch}
+
+Las Figuras \ref{fig:vistas_haptic1}, \ref{fig:vistas_haptic2} y \ref{fig:vistas_haptic3} muestran las vistas principales del agarre diseñado para el efector final del dispositivo háptico.
+
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_anular_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_anular_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_anular_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del agarre del dedo anular.}
+    \label{fig:vistas_haptic1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_pulgar_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_pulgar_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pinza_pulgar_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño del agarre del dedo pulgar.}
+    \label{fig:vistas_haptic2}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/tapa_cilindro_frontal.png}
+        \caption*{(a) Vista frontal}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/tapa_cilindro_lateral.png}
+        \caption*{(b) Vista lateral}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/tapa_cilindro_superior.png}
+        \caption*{(c) Vista superior}
+    \end{minipage}
+
+    \caption{Vistas principales del diseño de la tapa del acople.}
+    \label{fig:vistas_haptic3}
+\end{figure}
+
+La Figura \ref{fig:vistas_pinza123} muestra el ensamblaje final de las piezas para formar el acople para el dispositivo háptico.
+
+\begin{figure}[H]
+    \centering
+
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/haptic_explo.png}
+        \caption*{(a) Plano de explosión}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/haptic_ensamble.png}
+        \caption*{(b) Ensamblaje final}
+    \end{minipage}
+   \caption{Vistas principales del ensamblaje final.}
+    \label{fig:vistas_pinza123}
+\end{figure}
+
+\section{Pruebas con el banco de trabajo}
+
+Se realizaron pruebas de seguimiento a la trayectoria con las 3 arquitecturas de control para medir los errores máximos y promedios es el espacio de trabajo

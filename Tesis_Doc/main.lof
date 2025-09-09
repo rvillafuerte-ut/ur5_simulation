@@ -1,0 +1,39 @@
+\babel@toc {spanish}{}\relax 
+\babel@toc {spanish}{}\relax 
+\contentsline {figure}{\numberline {0.1}{\ignorespaces Ranking de los 20 casos más comunes en visitas al Área de Emergencias en 2018\cite {Emergency_reasons}\relax }}{5}{figure.caption.4}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Anestésicos locales más utilizados\cite {GONZALEZ-CELY2018}\relax }}{16}{figure.caption.15}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Tipos de hilos en suturas\cite {GONZALEZ-CELY2018}\relax }}{17}{figure.caption.17}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Dispositivo háptico Geomagic touch de 3D Systems\relax }}{19}{figure.caption.27}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Especificaciones técnicas del dispositivo háptico Geomagic touch de 3D Systems\relax }}{20}{figure.caption.28}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Modificación al efector final del módulo geomagic touch en \cite {arm_pivot_joints_stiffness}\relax }}{22}{figure.caption.31}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Posición y orientación de un cuerpo rígido\relax }}{23}{figure.caption.34}%
+\contentsline {figure}{\numberline {2.7}{\ignorespaces Transformación de coordenadas en una Cadena cinemática abierta \cite {siciliano_robotics_2009}\relax }}{26}{figure.caption.40}%
+\contentsline {figure}{\numberline {2.8}{\ignorespaces Método Denavit-Hartemberg\relax }}{27}{figure.caption.43}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Esquema de la metodología VDI 2206\relax }}{42}{figure.caption.70}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Comunicación de tópicos y nodos planteada\relax }}{43}{figure.caption.72}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Simulación en Gazebo\relax }}{47}{figure.caption.80}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Seguimiento a la trayectoria en los 3 ejes\relax }}{48}{figure.caption.82}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Error al seguimiento a la trayectoria\relax }}{48}{figure.caption.83}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Diagrama de nodos y tópicos para el control del Geomagic Touch\relax }}{50}{figure.caption.85}%
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Seguimiento de trayectoria cuadrada con el efector final del dispositivo háptico\relax }}{51}{figure.caption.86}%
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Seguimiento en el eje X de la trayectoria cuadrada\relax }}{52}{figure.caption.87}%
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Seguimiento en el eje Y de la trayectoria cuadrada\relax }}{52}{figure.caption.88}%
+\contentsline {figure}{\numberline {5.8}{\ignorespaces Seguimiento en el eje Z de la trayectoria cuadrada\relax }}{53}{figure.caption.89}%
+\contentsline {figure}{\numberline {5.9}{\ignorespaces Seguimiento en el espacio cartesiano\relax }}{54}{figure.caption.91}%
+\contentsline {figure}{\numberline {5.10}{\ignorespaces Error en X [mm] vs Tiempo [s]\relax }}{54}{figure.caption.92}%
+\contentsline {figure}{\numberline {5.11}{\ignorespaces Error en Y [mm] vs Tiempo [s]\relax }}{55}{figure.caption.93}%
+\contentsline {figure}{\numberline {5.12}{\ignorespaces Error en Z [mm] vs Tiempo [s]\relax }}{55}{figure.caption.94}%
+\contentsline {figure}{\numberline {5.13}{\ignorespaces Vistas principales del diseño del soporte principal de la pinza.\relax }}{56}{figure.caption.96}%
+\contentsline {figure}{\numberline {5.14}{\ignorespaces Vistas principales del diseño del slider de la pinza.\relax }}{56}{figure.caption.97}%
+\contentsline {figure}{\numberline {5.15}{\ignorespaces Vistas principales del diseño del seguro inferior que acopla la pinza.\relax }}{56}{figure.caption.98}%
+\contentsline {figure}{\numberline {5.16}{\ignorespaces Vistas principales del diseño del seguro superior que acopla la pinza.\relax }}{56}{figure.caption.99}%
+\contentsline {figure}{\numberline {5.17}{\ignorespaces Vistas principales del ensamble final.\relax }}{57}{figure.caption.100}%
+\contentsline {figure}{\numberline {5.18}{\ignorespaces Vistas principales del diseño del agarre del dedo anular.\relax }}{58}{figure.caption.102}%
+\contentsline {figure}{\numberline {5.19}{\ignorespaces Vistas principales del diseño del agarre del dedo pulgar.\relax }}{58}{figure.caption.103}%
+\contentsline {figure}{\numberline {5.20}{\ignorespaces Vistas principales del diseño de la tapa del acople.\relax }}{58}{figure.caption.104}%
+\contentsline {figure}{\numberline {5.21}{\ignorespaces Vistas principales del ensamblaje final.\relax }}{58}{figure.caption.105}%
