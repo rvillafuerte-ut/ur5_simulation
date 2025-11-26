@@ -10,7 +10,7 @@ UR5Kinematics::UR5Kinematics(const std::string& urdf_path) {
     tool_frame_id_ = model_->getFrameId("tool0");
 
     if (!model_->existFrame("tool0")) {
-        throw std::runtime_error("El frame 'tool0' no existe en el modelo URDF.");
+        throw std::runtime_error("El frame 'tool0' no existe en el modelo URDF."); 
     }
     std::cout << "Modelo cinemático cargado correctamente desde " << urdf_path << std::endl;
 }
