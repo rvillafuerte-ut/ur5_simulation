@@ -1,6 +1,7 @@
 #include "ur5_kinematics/kinematics.hpp"
 #include <iostream>
 #include <OsqpEigen/OsqpEigen.h>
+#include <Eigen/Sparse>
 
 UR5Kinematics::UR5Kinematics(const std::string& urdf_path) {
     model_ = std::make_unique<pinocchio::Model>();
@@ -82,39 +83,54 @@ Eigen::Matrix<double, 6, 1> UR5Kinematics::computePoseError(const pinocchio::SE3
 }
 
 Eigen::VectorXd UR5Kinematics::solveQPIK(const Eigen::MatrixXd& J, const Eigen::Matrix<double, 6, 1>& error, const Eigen::MatrixXd& W_p, const Eigen::MatrixXd& W_o) {
-    OsqpEigen::Solver solver;
-    solver.settings()->setVerbosity(false);
-    solver.settings()->setWarmStart(true);
+    // Reutilizar una instancia estática de OSQP para minimizar overhead por llamada
+    static OsqpEigen::Solver solver;
+    static bool initialized = false;
+    static int last_n = -1;
 
-    int n = J.cols(); // Número de articulaciones (variables)
-    Eigen::MatrixXd J_p = J.block(0, 0, 3, n);
-    Eigen::MatrixXd J_o = J.block(3, 0, 3, n);
-    Eigen::VectorXd e_p = error.head(3);
-    Eigen::VectorXd e_o = error.tail(3);
-    Eigen::SparseMatrix<double> H = Eigen::MatrixXd::Identity(n, n).sparseView();
-    Eigen::VectorXd gradient = Eigen::VectorXd::Zero(n);
+    const int n = static_cast<int>(J.cols()); // Número de articulaciones (variables)
+    const Eigen::MatrixXd J_p = J.topRows(3);
+    const Eigen::MatrixXd J_o = J.bottomRows(3);
+    const Eigen::VectorXd e_p = error.head(3);
+    const Eigen::VectorXd e_o = error.tail(3);
 
-    // Formular el problema como min ||W_p * J_p * q_dot - W_p * e_p||^2 + ||W_o * J_o * q_dot - W_o * e_o||^2
-    // Esto lleva a un problema de mínimos cuadrados que se puede resolver con QP.
+    // Formular el problema como min ||W_p * (J_p * dq - e_p)||^2 + ||W_o * (J_o * dq - e_o)||^2
+    // Equivalente a: min 0.5 dq^T H dq + g^T dq
     Eigen::MatrixXd A = (W_p * J_p).transpose() * (W_p * J_p) + (W_o * J_o).transpose() * (W_o * J_o);
     Eigen::VectorXd b = (W_p * J_p).transpose() * (W_p * e_p) + (W_o * J_o).transpose() * (W_o * e_o);
-    // A es la matriz Hessiana y b es el vector de gradiente
-    Eigen::SparseMatrix<double> H_qp = A.sparseView();
-    Eigen::VectorXd g_qp = -b; // El solver de QP minimiza 0.5 * x^T * H * x + g^T * x 
-    // x es la variable de decisión (q_dot)
-    solver.data()->setNumberOfVariables(n);
-    solver.data()->setNumberOfConstraints(0); // Sin restricciones de igualdad por ahora
-    solver.data()->setHessianMatrix(H_qp);
-    solver.data()->setGradient(g_qp);
 
-    if (!solver.initSolver()) {
-        throw std::runtime_error("Failed to initialize QP solver");
+    // Regularización para asegurar definida positiva
+    const double lambda = 1e-6;
+    A.noalias() += lambda * Eigen::MatrixXd::Identity(n, n);
+
+    Eigen::SparseMatrix<double> H_qp = A.sparseView();
+    Eigen::VectorXd g_qp = -b;
+
+    if (!initialized || last_n != n) {
+        solver.settings()->setVerbosity(false);
+        solver.settings()->setWarmStart(true);
+        solver.data()->setNumberOfVariables(n);
+        solver.data()->setNumberOfConstraints(0);
+        solver.data()->setHessianMatrix(H_qp);
+        solver.data()->setGradient(g_qp);
+        if (!solver.initSolver()) {
+            throw std::runtime_error("Failed to initialize QP solver");
+        }
+        initialized = true;
+        last_n = n;
+    } else {
+        if (!solver.updateHessianMatrix(H_qp)) {
+            throw std::runtime_error("Failed to update Hessian matrix");
+        }
+        if (!solver.updateGradient(g_qp)) {
+            throw std::runtime_error("Failed to update gradient");
+        }
     }
 
     if (solver.solveProblem() != OsqpEigen::ErrorExitFlag::NoError) {
         throw std::runtime_error("Failed to solve QP problem");
     }
-    
+
     return solver.getSolution();
 }
 
@@ -127,18 +143,20 @@ Eigen::VectorXd UR5Kinematics::inverseKinematicsQP(
     double weight_pos,
     double weight_orient)
 {
+    // Versión simplificada: única tarea cartesiana con OSQP, sin nivel secundario
     Eigen::VectorXd q = q_initial;
     const double joint_limit = PI;
+    const double dq_max_norm = 0.5; // límite de paso por iteración
     pinocchio::SE3 desired_pose(desired_orient.toRotationMatrix(), desired_pos);
+    const int iter_cap = std::min(max_iterations, 15);
+    const double alpha_eff = std::max(0.1, std::min(alpha, 1.0));
 
-    for (int i = 0; i < max_iterations; ++i) {
+    for (int i = 0; i < iter_cap; ++i) {
         pinocchio::forwardKinematics(*model_, *data_, q);
         pinocchio::updateFramePlacement(*model_, *data_, tool_frame_id_);
 
-        Eigen::Matrix<double, 6, 1> error = computePoseError(desired_pose);
-
+        const Eigen::Matrix<double, 6, 1> error = computePoseError(desired_pose);
         if (error.norm() < 1e-4) {
-            // std::cout << "Convergencia alcanzada en " << i << " iteraciones." << std::endl;
             return q;
         }
 
@@ -146,18 +164,20 @@ Eigen::VectorXd UR5Kinematics::inverseKinematicsQP(
         J.setZero();
         pinocchio::computeFrameJacobian(*model_, *data_, q, tool_frame_id_, pinocchio::ReferenceFrame::LOCAL_WORLD_ALIGNED, J);
 
-        Eigen::MatrixXd W_p = Eigen::Matrix3d::Identity() * weight_pos;
-        Eigen::MatrixXd W_o = Eigen::Matrix3d::Identity() * weight_orient;
+        const Eigen::Matrix3d W_p = Eigen::Matrix3d::Identity() * weight_pos;
+        const Eigen::Matrix3d W_o = Eigen::Matrix3d::Identity() * weight_orient;
 
         Eigen::VectorXd dq = solveQPIK(J, error, W_p, W_o);
-
-        q += alpha * dq;
-        for (int j = 1; j < q.size()-1; j++) {
-            if (q[j] > joint_limit) {q[j] = joint_limit;}
-            else if (q[j] < -joint_limit) {q[j] = -joint_limit;} 
+        const double nrm = dq.norm();
+        if (nrm > dq_max_norm) {
+            dq *= (dq_max_norm / nrm);
+        }
+        q.noalias() += alpha_eff * dq;
+        for (int j = 0; j < q.size(); ++j) {
+            if (q[j] > joint_limit) q[j] = joint_limit;
+            else if (q[j] < -joint_limit) q[j] = -joint_limit;
         }
     }
-    // std::cerr << "Advertencia: La cinemática inversa (QP) no convergió." << std::endl;
     return q;
 }
 

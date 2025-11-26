@@ -38,12 +38,8 @@ private:
 
     // Métodos auxiliares privados.
     Eigen::MatrixXd computeFullJacobian(const Eigen::VectorXd& q);
-    Eigen::MatrixXd computeFullJacobianQuaternion(
-        const pinocchio::Model& model,
-        pinocchio::Data& data,
-        const pinocchio::FrameIndex& tool_frame_id,
+    Eigen::MatrixXd computeFullJacobianQuaternion(        
         const Eigen::VectorXd& q,
-        double delta = 1e-8)
+        double delta = 1e-8);
 };
-
 #endif // UR5_IMPEDANCE_HPP

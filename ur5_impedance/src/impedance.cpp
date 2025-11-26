@@ -48,7 +48,7 @@ Eigen::MatrixXd UR5Impedance::computeFullJacobian(const Eigen::VectorXd& q) {
 
     return J_geom; // Devolvemos el jacobiano geométrico de 6D, que es más estándar.
 }
-Eigen::MatrixXd UR5Impedance::computeFullJacobianQuaternion(const Eigen::VectorXd& q, double delta = 1e-8)
+Eigen::MatrixXd UR5Impedance::computeFullJacobianQuaternion(const Eigen::VectorXd& q, double delta)
 {
     int nq = q.size();
     Eigen::MatrixXd J_full(7, nq); // 3 pos + 4 quat
@@ -95,16 +95,15 @@ Eigen::VectorXd UR5Impedance::calculateControlCommand(
     pinocchio::forwardKinematics(*model_, *data_, q, dq);
     pinocchio::updateFramePlacement(*model_, *data_, tool_frame_id_);
     
-    Eigen::MatrixXd J(6, model_->nv);
+    
     Eigen::MatrixXd J = computeFullJacobianQuaternion(q, 1e-8);
-    Eigen::MatrixXd dJ = (J - J_anterior) / dt; //7x6
+    Eigen::MatrixXd dJ = (J - J_previous_) / dt; //7x6
+    J_previous_ = J; // Actualizar para la siguiente iteración
     Eigen::VectorXd dx_current_cartesian = J * dq; // (7x6) * (6x1) = 7x1
 
     Eigen::Vector4d vel_ori_d = Eigen::Vector4d::Zero();
     Eigen::Vector4d acc_ori_d = Eigen::Vector4d::Zero();
-    Eigen::VectorXd vel_des(7), dvel_des(7);
-    vel_des << v_des, vel_ori_d;
-    dvel_des << a_des, acc_ori_d;
+
 
     Eigen::Matrix<double,7,7> Kp_task, Kd_task;
     Kp_task.setZero();
@@ -128,14 +127,15 @@ Eigen::VectorXd UR5Impedance::calculateControlCommand(
     error_pose << error_pos, error_quat;
 
     // Error de velocidad
+    
     Eigen::VectorXd current_vel_6D = J * dq;
     Eigen::VectorXd desired_vel_7D(7);
-    desired_vel_7D << desired_vel, Eigen::Vector4d::Zero();
+    desired_vel_7D << desired_vel, vel_ori_d;
     
-    Eigen::VectorXd current_vel_7D(7);
-    current_vel_7D << current_vel_6D.head(3), Eigen::Vector4d::Zero(); // Simplificación para la velocidad de orientación
-    
-    Eigen::VectorXd error_vel = desired_vel_7D - current_vel_7D;
+    // Eigen::VectorXd current_vel_7D(7);
+    // current_vel_7D << current_vel_6D.head(3), vel_ori_d;
+
+    Eigen::VectorXd error_vel = desired_vel_7D - dx_current_cartesian;
 
     // 3. Dinámica del robot
     pinocchio::computeJointJacobians(*model_, *data_, q);
@@ -152,7 +152,7 @@ Eigen::VectorXd UR5Impedance::calculateControlCommand(
     // Una formulación más estándar es: tau = J^T * F + nle, donde F es la fuerza cartesiana deseada.
     
     Eigen::VectorXd desired_acc_7D(7);
-    desired_acc_7D << desired_acc, Eigen::Vector4d::Zero();
+    desired_acc_7D << desired_acc, acc_ori_d;
 
     // Fuerza cartesiana deseada (simplificada para 7D)
     Eigen::Matrix<double, 7, 1> F_cartesian = desired_acc_7D - Kp_task_diag.asDiagonal() * error_pose - Kd_task_diag.asDiagonal() * error_vel;

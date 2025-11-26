@@ -20,7 +20,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
   ${PINOCCHIO_INCLUDE_DIRS}
-  ${OsqpEigen_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -41,18 +40,13 @@ install(DIRECTORY include/
 )
 
 # Exportar para que otros paquetes puedan encontrarlo
-ament_export_dependencies(pinocchio Eigen3 OsqpEigen)
-ament_export_libraries(${PROJECT_NAME})
-ament_export_include_directories(include)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(pinocchio Eigen3)
 
-export(EXPORT export_${PROJECT_NAME}
-  FILE "${PROJECT_NAME}Config.cmake"
-  NAMESPACE ur5_impedance::
-)
-
-install(
-  FILES "${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  DESTINATION "share/${PROJECT_NAME}/cmake"
+install(EXPORT export_${PROJECT_NAME}
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE ${PROJECT_NAME}::
+  DESTINATION share/${PROJECT_NAME}/cmake
 )
 
 if(BUILD_TESTING)

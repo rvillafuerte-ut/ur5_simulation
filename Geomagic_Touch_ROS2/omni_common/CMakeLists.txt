@@ -91,11 +91,54 @@ ament_target_dependencies(omni_state
   ${THIS_PACKAGE_DEPS}
 )
 
+add_executable(omni_state_der
+  src/omni_state_der.cpp
+)
+target_link_libraries(omni_state_der
+  HD
+  HDU
+  rt
+  ncurses
+  ${THIS_PACKAGE_LIBS}
+)
+target_include_directories(omni_state_der
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>  
+  ${THIS_PACKAGE_INCLUDE_DIRS}
+)
+ament_target_dependencies(omni_state_der
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${THIS_PACKAGE_DEPS}
+)
+
+add_executable(omni_state_iz
+  src/omni_state_iz.cpp
+)
+target_link_libraries(omni_state_iz
+  HD
+  HDU
+  rt
+  ncurses
+  ${THIS_PACKAGE_LIBS}
+)
+target_include_directories(omni_state_iz
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>  
+  ${THIS_PACKAGE_INCLUDE_DIRS}
+)
+ament_target_dependencies(omni_state_iz
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${THIS_PACKAGE_DEPS}
+)
 
 install(
   TARGETS
     omni
     omni_state
+    omni_state_der
+    omni_state_iz
   DESTINATION lib/${PROJECT_NAME}
 )
 install(

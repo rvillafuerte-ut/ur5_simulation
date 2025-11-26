@@ -93,14 +93,14 @@ public:
     PhantomROS(std::shared_ptr<rclcpp::Node> node)
     {
         node_ = node;
-        node_->declare_parameter<std::string>("~omni_name", "phantom");
-        node_->declare_parameter<std::string>("~reference_frame", "/map");
-        node_->declare_parameter<std::string>("~units", "mm");
-        node_->declare_parameter<int>("~publish_rate", 1000);
-        node_->get_parameter<std::string>("~omni_name", omni_name);
-        node_->get_parameter<std::string>("~reference_frame", ref_frame);
-        node_->get_parameter<std::string>("~units", units);
-        node_->get_parameter<int>("~publish_rate", publish_rate);
+        node_->declare_parameter<std::string>("omni_name", "phantom");
+        node_->declare_parameter<std::string>("reference_frame", "/map");
+        node_->declare_parameter<std::string>("units", "mm");
+        node_->declare_parameter<int>("publish_rate", 1000);
+        node_->get_parameter<std::string>("omni_name", omni_name);
+        node_->get_parameter<std::string>("reference_frame", ref_frame);
+        node_->get_parameter<std::string>("units", units);
+        node_->get_parameter<int>("publish_rate", publish_rate);
     }
 
     void init(OmniState *s)
@@ -351,7 +351,7 @@ HDCallbackCode HDCALLBACK omni_state_callback(void *pUserData)
 /*******************************************************************************
  Automatic Calibration of Phantom Device - No character inputs
  *******************************************************************************/
-void HHD_Auto_Calibration()
+void HHD_Auto_Calibration(rclcpp::Logger logger)
 {
     int supportedCalibrationStyles;
     HDErrorInfo error;
@@ -360,77 +360,98 @@ void HHD_Auto_Calibration()
     if (supportedCalibrationStyles & HD_CALIBRATION_ENCODER_RESET)
     {
         calibrationStyle = HD_CALIBRATION_ENCODER_RESET;
-        RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "HD_CALIBRATION_ENCODER_RESET..");
+        RCLCPP_INFO(logger, "HD_CALIBRATION_ENCODER_RESET..");
     }
     if (supportedCalibrationStyles & HD_CALIBRATION_INKWELL)
     {
         calibrationStyle = HD_CALIBRATION_INKWELL;
-        RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "HD_CALIBRATION_INKWELL..");
+        RCLCPP_INFO(logger, "HD_CALIBRATION_INKWELL..");
     }
     if (supportedCalibrationStyles & HD_CALIBRATION_AUTO)
     {
         calibrationStyle = HD_CALIBRATION_AUTO;
-        RCLCPP_INFO(rclcpp::get_logger("omni_haptic_ndoe"), "HD_CALIBRATION_AUTO..");
+        RCLCPP_INFO(logger, "HD_CALIBRATION_AUTO..");
     }
     if (calibrationStyle == HD_CALIBRATION_ENCODER_RESET)
     {
         do
         {
             hdUpdateCalibration(calibrationStyle);
-            RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "Calibrating.. (put stylus in well)");
+            RCLCPP_INFO(logger, "Calibrating.. (put stylus in well)");
             if (HD_DEVICE_ERROR(error = hdGetError()))
             {
                 hduPrintError(stderr, &error, "Reset encoders reset failed.");
                 break;
             }
         } while (hdCheckCalibration() != HD_CALIBRATION_OK);
-        RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "Calibration complete.");
+        RCLCPP_INFO(logger, "Calibration complete.");
     }
     while (hdCheckCalibration() != HD_CALIBRATION_OK)
     {
         usleep(1e6);
         if (hdCheckCalibration() == HD_CALIBRATION_NEEDS_MANUAL_INPUT)
-            RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "Please place the device into the inkwell for calibration");
+            RCLCPP_INFO(logger, "Please place the device into the inkwell for calibration");
         else if (hdCheckCalibration() == HD_CALIBRATION_NEEDS_UPDATE)
         {
-            RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "Calibration updated successfully");
+            RCLCPP_INFO(logger, "Calibration updated successfully");
             hdUpdateCalibration(calibrationStyle);
         }
         else
-            RCLCPP_FATAL(rclcpp::get_logger("omni_haptic_node"), "Unknown calibration status");
+            RCLCPP_FATAL(logger, "Unknown calibration status");
     }
 }
 
 int main(int argc, char **argv)
 {
     ////////////////////////////////////////////////////////////////
-    // Init Phantom
+    // Init ROS first to read parameters
+    ////////////////////////////////////////////////////////////////
+    rclcpp::init(argc, argv);
+    std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("omni_haptic_node");
+    
+    // Declare and get the device name parameter
+    node->declare_parameter<std::string>("device_name", "");
+    std::string device_name;
+    node->get_parameter<std::string>("device_name", device_name);
+    
+    ////////////////////////////////////////////////////////////////
+    // Init Phantom with the specified device name
     ////////////////////////////////////////////////////////////////
     HDErrorInfo error;
     HHD hHD;
-    hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    
+    // Use device name from parameter, or HD_DEFAULT_DEVICE if empty
+    if (device_name.empty())
+    {
+        RCLCPP_INFO(node->get_logger(), "Using default haptic device");
+        hHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    }
+    else
+    {
+        RCLCPP_INFO(node->get_logger(), "Using haptic device: %s", device_name.c_str());
+        hHD = hdInitDevice(device_name.c_str());
+    }
+    
     if (HD_DEVICE_ERROR(error = hdGetError()))
     {
         // hduPrintError(stderr, &error, "Failed to initialize haptic device");
-        RCLCPP_ERROR(rclcpp::get_logger("omni_haptic_node"), "Failed to initialize haptic device"); //: %s", &error);
+        RCLCPP_ERROR(node->get_logger(), "Failed to initialize haptic device"); //: %s", &error);
         return -1;
     }
 
-    RCLCPP_INFO(rclcpp::get_logger("omni_haptic_node"), "Found %s.", hdGetString(HD_DEVICE_MODEL_TYPE));
+    RCLCPP_INFO(node->get_logger(), "Found %s.", hdGetString(HD_DEVICE_MODEL_TYPE));
     hdEnable(HD_FORCE_OUTPUT);
     hdStartScheduler();
     if (HD_DEVICE_ERROR(error = hdGetError()))
     {
-        RCLCPP_ERROR(rclcpp::get_logger("omni_haptic_node"), "Failed to start the scheduler"); //, &error);
+        RCLCPP_ERROR(node->get_logger(), "Failed to start the scheduler"); //, &error);
         return -1;
     }
-    HHD_Auto_Calibration();
+    HHD_Auto_Calibration(node->get_logger());
 
     ////////////////////////////////////////////////////////////////
-    // Init ROS
+    // Init ROS node components
     ////////////////////////////////////////////////////////////////
-    rclcpp::init(argc, argv);
-    std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("omni_haptic_node");
     OmniState state;
     PhantomROS omni_ros(node);
 

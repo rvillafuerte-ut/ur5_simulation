@@ -19,10 +19,9 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
 
 
-
 def launch_setup(context, *args, **kwargs):
-    # Inicializa ur_type con valor fijo
-    ur_type = LaunchConfiguration("ur_type")  # <-- Cambia aquí el valor fijo deseado
+    # Initialize Arguments
+    ur_type = LaunchConfiguration("ur_type")
     safety_limits = LaunchConfiguration("safety_limits")
     safety_pos_margin = LaunchConfiguration("safety_pos_margin")
     safety_k_position = LaunchConfiguration("safety_k_position")
@@ -37,17 +36,17 @@ def launch_setup(context, *args, **kwargs):
     launch_rviz = LaunchConfiguration("launch_rviz")
     gazebo_gui = LaunchConfiguration("gazebo_gui")
     world_file = LaunchConfiguration("world_file")
-    
-       
+    # Nuevos argumentos de posición
+    pos_x = LaunchConfiguration("pos_x")
+    pos_y = LaunchConfiguration("pos_y")
+    pos_z = LaunchConfiguration("pos_z")
 
     initial_joint_controllers = PathJoinSubstitution(
         [FindPackageShare(runtime_config_package), "config", controllers_file]
     )
-    
-    
 
     rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare(description_package), "rviz", "view_robot_orginal.rviz"]
+        [FindPackageShare(description_package), "rviz", "view_robot.rviz"]
     )
 
     robot_description_content = Command(
@@ -68,9 +67,6 @@ def launch_setup(context, *args, **kwargs):
             safety_k_position,
             " ",
             "name:=",
-            "ur",
-            " ",
-            "ur_type:=",
             ur_type,
             " ",
             "tf_prefix:=",
@@ -80,18 +76,14 @@ def launch_setup(context, *args, **kwargs):
             " ",
             "simulation_controllers:=",
             initial_joint_controllers,
+            " ",
+            "controller_manager_namespace:=",
+            prefix,
         ]
     )
     robot_description = {"robot_description": robot_description_content}
-    ur_control_node = Node(
-        package="ur_robot_driver",
-        executable="ur_ros2_control_node",
-        parameters=[
-            robot_description,
-            ParameterFile(initial_joint_controllers, allow_substs=True),
-        ],
-        output="screen",
-    )
+
+    # --- Nodos con Namespace Corregido ---
 
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
@@ -108,11 +100,11 @@ def launch_setup(context, *args, **kwargs):
         arguments=["-d", rviz_config_file],
         condition=IfCondition(launch_rviz),
     )
-    # Joint State Broadcaster is a controller that publishes the state of the robot's joints
+
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=["joint_state_broadcaster", "--controller-manager", "controller_manager"],
     )
 
     # Delay rviz start after `joint_state_broadcaster`
@@ -128,13 +120,13 @@ def launch_setup(context, *args, **kwargs):
     initial_joint_controller_spawner_started = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=[initial_joint_controller, "-c", "/controller_manager"],
+        arguments=[initial_joint_controller, "-c", "controller_manager"],
         condition=IfCondition(start_joint_controller),
     )
     initial_joint_controller_spawner_stopped = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=[initial_joint_controller, "-c", "/controller_manager", "--stopped"],
+        arguments=[initial_joint_controller, "-c", "controller_manager", "--stopped"],
         condition=UnlessCondition(start_joint_controller),
     )
 
@@ -150,44 +142,24 @@ def launch_setup(context, *args, **kwargs):
             "ur",
             "-allow_renaming",
             "true",
-        ],
-    )
-    gz_spawn_entity_2 = Node(
-        package="ros_gz_sim",
-        executable="create",
-        output="screen",
-        arguments=[
-            "-string",
-            robot_description_content,
-            "-name",
-            "ur",
-            "-allow_renaming",
-            "true",
+            # Añadir argumentos de posición
             "-x",
-            "0.5",
+            pos_x,
             "-y",
-            "0.5",
+            pos_y,
             "-z",
-            "0.0",
+            pos_z,
         ],
     )
     gz_launch_description_with_gui = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [FindPackageShare("ros_gz_sim"), "/launch/gz_sim.launch.py"]
         ),
-        launch_arguments={"gz_args": ["-r", "-v", "4", world_file]}.items(),
-        condition=IfCondition(gazebo_gui),
+        launch_arguments={"gz_args": [" -r -v 4 ", world_file]}.items(),
+        condition=IfCondition(LaunchConfiguration("launch_gz_sim_server")),
     )
 
-    gz_launch_description_without_gui = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [FindPackageShare("ros_gz_sim"), "/launch/gz_sim.launch.py"]
-        ),
-        launch_arguments={"gz_args": ["-s", "-r", "-v", "4", world_file]}.items(),
-        condition=UnlessCondition(gazebo_gui),
-    )
-
-    # Make the /clock topic available in ROS
+    # Bridge
     gz_sim_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
@@ -198,7 +170,6 @@ def launch_setup(context, *args, **kwargs):
     )
 
     nodes_to_start = [
-        #ur_control_node,
         robot_state_publisher_node,
         joint_state_broadcaster_spawner,
         delay_rviz_after_joint_state_broadcaster_spawner,
@@ -206,7 +177,6 @@ def launch_setup(context, *args, **kwargs):
         initial_joint_controller_spawner_started,
         gz_spawn_entity,
         gz_launch_description_with_gui,
-        gz_launch_description_without_gui,
         gz_sim_bridge,
     ]
 
@@ -215,12 +185,25 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     declared_arguments = []
-    #Elimina la declaración de argumento para "ur_type"
+    # UR specific arguments
     declared_arguments.append(
         DeclareLaunchArgument(
             "ur_type",
             description="Type/series of used UR robot.",
-            choices=["ur3", "ur3e", "ur5", "ur5e", "ur10", "ur10e", "ur16e", "ur20", "ur30"],
+            choices=[
+                "ur3",
+                "ur3e",
+                "ur5",
+                "ur5e",
+                "ur7e",
+                "ur10",
+                "ur10e",
+                "ur12e",
+                "ur16e",
+                "ur15",
+                "ur20",
+                "ur30",
+            ],
             default_value="ur5e",
         )
     )
@@ -259,12 +242,12 @@ def generate_launch_description():
             "controllers_file",
             default_value="ur_controllers.yaml",
             description="YAML file with the controllers configuration.",
-        ) 
+        )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             "description_package",
-            default_value="ur5_simulation",
+            default_value="ur5_description",
             description="Description package with robot URDF/XACRO files. Usually the argument \
         is not set, it enables use of a custom description.",
         )
@@ -279,7 +262,7 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "prefix",
-            default_value="",
+            default_value='""',
             description="Prefix of the joint names, useful for \
         multi-robot setup. If changed than also joint names in the controllers' configuration \
         have to be updated.",
@@ -312,6 +295,35 @@ def generate_launch_description():
             "world_file",
             default_value="empty.sdf",
             description="Gazebo world file (absolute path or filename from the gazebosim worlds collection) containing a custom world.",
+        )
+    )
+    # Declaración de los nuevos argumentos de posición
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "pos_x",
+            default_value="0.0",
+            description="Posición inicial en X del robot en el mundo.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "pos_y",
+            default_value="0.0",
+            description="Posición inicial en Y del robot en el mundo.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "pos_z",
+            default_value="0.0",
+            description="Posición inicial en Z del robot en el mundo.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "launch_gz_sim_server",
+            default_value="true",
+            description="Launch the Gazebo server. Set to false if you want to launch it manually.",
         )
     )
 
