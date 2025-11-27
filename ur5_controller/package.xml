@@ -20,6 +20,7 @@
   <depend>geomagic_interface</depend>
   <depend>ur5_kinematics</depend>
   <depend>ur5_impedance</depend>
+  <depend>ur5_sliding</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

@@ -1,5 +1,6 @@
 #include <ur5_kinematics/kinematics.hpp>
 #include <ur5_impedance/impedance.hpp>
+#include <ur5_sliding/sliding.hpp>
 #include <ur5_controller/structs.hpp>
 
 // ROS 2 Core
@@ -156,36 +157,35 @@ public:
   UR5IKNode() : Node("ur5_ik_node")
   {
     // 1. Declarar parámetros
-    this->declare_parameter<std::string>("control_topic", "/joint_trajectory_controller/joint_trajectory");
-    this->declare_parameter<bool>("geomagic", false);
-    this->declare_parameter<std::string>("ur", "ur5");
-    this->declare_parameter<std::string>("nmspace", "");
+    this->declare_parameter<std::string>("control_topic", config_.control_topic);
+    this->declare_parameter<bool>("geomagic", config_.use_geomagic);
+    this->declare_parameter<std::string>("ur", config_.ur_model);
+    this->declare_parameter<std::string>("nmspace", config_.nmspace);
     this->declare_parameter<std::string>("urdf_path", "");
     this->declare_parameter<std::string>("geomagic_topic", "/phantom/pose");
     this->declare_parameter<std::string>("geomagic_button_topic", "/phantom/button");
-        // Posicionamiento inicial estilo ur5_pos cuando no hay geomagic
-        this->declare_parameter<bool>("use_ur5_pos_init", true);
-    // Usar los valores por defecto definidos en los miembros para que coincidan con el código (evita sobrescribir con otros por defecto)
-    this->declare_parameter<std::vector<double>>("q_target", q_target_);
-    this->declare_parameter<double>("q_target_time", q_target_time_);
-        // Parámetros de CSV
-        this->declare_parameter<bool>("csv_log_enable", false);
-        this->declare_parameter<std::string>("csv_log_dir", "");
-        this->declare_parameter<std::string>("csv_log_prefix", "ur5_log");
-    // Parámetros de trayectoria automática cuando geomagic = false
-    this->declare_parameter<std::vector<double>>("traj_A", std::vector<double>{0.05, 0.05, 0.05}); // amplitudes en metros
-    this->declare_parameter<double>("traj_wn", 3.14159); // frecuencia natural (rad/s)
-    this->declare_parameter<double>("traj_c0", 1.0); // factor de decaimiento exponencial
-    this->declare_parameter<int>("traj_mode", 1); // modo de trayectoria (1: sinusoidal, 2: exponencial)
+    // Movimiento inicial
+    this->declare_parameter<bool>("use_ur5_pos_init", config_.use_ur5_pos_init);
+    this->declare_parameter<std::vector<double>>("q_target", config_.q_target);
+    this->declare_parameter<double>("q_target_time", config_.q_target_time);
+    // CSV
+    this->declare_parameter<bool>("csv_log_enable", config_.csv_enabled);
+    this->declare_parameter<std::string>("csv_log_dir", config_.csv_path);
+    this->declare_parameter<std::string>("csv_log_prefix", config_.csv_prefix);
+    // Trayectoria automática
+    this->declare_parameter<std::vector<double>>("traj_A", {config_.traj_A.x(), config_.traj_A.y(), config_.traj_A.z()});
+    this->declare_parameter<double>("traj_wn", config_.traj_wn);
+    this->declare_parameter<double>("traj_c0", config_.traj_c0);
+    this->declare_parameter<int>("traj_mode", config_.traj_mode);
 
     // 2. Obtener parámetros y guardarlos en la struct de configuración
     this->get_parameter("control_topic", config_.control_topic);
     this->get_parameter("geomagic", config_.use_geomagic);
     this->get_parameter("ur", config_.ur_model);
     this->get_parameter("nmspace", config_.nmspace);
-    this->get_parameter("use_ur5_pos_init", use_ur5_pos_init_);
-    this->get_parameter("q_target", q_target_);
-    this->get_parameter("q_target_time", q_target_time_);
+    this->get_parameter("use_ur5_pos_init", config_.use_ur5_pos_init);
+    this->get_parameter("q_target", config_.q_target);
+    this->get_parameter("q_target_time", config_.q_target_time);
     this->get_parameter("csv_log_enable", config_.csv_enabled);
     this->get_parameter("csv_log_dir", config_.csv_path);
     this->get_parameter("csv_log_prefix", config_.csv_prefix);
@@ -193,17 +193,16 @@ public:
     std::vector<double> A_param;
     this->get_parameter("traj_A", A_param);
     if (A_param.size() == 3) {
-        amplitude_vec_ = Eigen::Vector3d(A_param[0], A_param[1], A_param[2]);
+        config_.traj_A = Eigen::Vector3d(A_param[0], A_param[1], A_param[2]);
     } else {
         RCLCPP_WARN(this->get_logger(), "Parametro traj_A debe tener tamaño 3. Usando valores por defecto.");
-        amplitude_vec_ = Eigen::Vector3d(0.05,0.05,0.05);
     }
-    this->get_parameter("traj_wn", traj_wn_);
-    this->get_parameter("traj_c0", traj_c0_);
-    this->get_parameter("traj_mode", traj_mode_);
-    if (traj_mode_ < 1 || traj_mode_ > 3) {
-        RCLCPP_WARN(this->get_logger(), "traj_mode fuera de rango (%d). Se usará 1.", traj_mode_);
-        traj_mode_ = 1;
+    this->get_parameter("traj_wn", config_.traj_wn);
+    this->get_parameter("traj_c0", config_.traj_c0);
+    this->get_parameter("traj_mode", config_.traj_mode);
+    if (config_.traj_mode < 1 || config_.traj_mode > 3) {
+        RCLCPP_WARN(this->get_logger(), "traj_mode fuera de rango (%d). Se usará 1.", config_.traj_mode);
+        config_.traj_mode = 1;
     }
     
     std::string urdf_param;
@@ -248,7 +247,7 @@ public:
     else {
         RCLCPP_INFO(this->get_logger(), "Modo Geomagic deshabilitado. Seguimiento de la trayectoria predefinida.");
         // Programar movimiento inicial tipo ur5_pos si está habilitado
-        if (use_ur5_pos_init_) {
+        if (config_.use_ur5_pos_init) {
             init_move_active_ = true;            // activar modo publicación hasta detectar movimiento
             init_baseline_set_ = false;          // baseline de joints se tomará al recibir JointState
             // Publicar periódicamente hasta detectar movimiento
@@ -259,7 +258,7 @@ public:
             RCLCPP_INFO(this->get_logger(), "Modo ur5_pos activo: publicando objetivo hasta detectar movimiento (umbral %.3f rad)", move_detect_threshold_);
         }
         // Trayectoria automática se activará una vez termine movimiento inicial o inmediatamente si no se usa init
-        if (!use_ur5_pos_init_) {
+        if (!config_.use_ur5_pos_init) {
             trajectory_active_ = false; // se activará tras captura de pose
         }
     }
@@ -316,9 +315,7 @@ private:
     double last_loop_ms_ {0.0};
 
     // ---- Movimiento inicial tipo ur5_pos ----
-    bool use_ur5_pos_init_ = true;
-    std::vector<double> q_target_ {1.57, -1.9, 1.7, -1.9, -1.7, 0.0};
-    double q_target_time_ = 2.0;
+    // (Variables trasladadas a config_)
     bool init_pose_published_ = false; // legado (no usado en modo repetitivo)
     bool init_move_active_ = false;    // publicar hasta detectar movimiento
     bool init_baseline_set_ = false;   // baseline ya capturada
@@ -331,10 +328,7 @@ private:
     int reach_count_ = 0;                    // conteo de comprobaciones consecutivas en umbral
     int reach_count_required_ = 5;           // número de comprobaciones consecutivas para confirmar llegada
     // ---- Trayectoria automática sin geomagic ----
-    Eigen::Vector3d amplitude_vec_{0.05,0.05,0.02};
-    double traj_wn_ {0.5};
-    double traj_c0_ {0.065};
-    int traj_mode_ {1};
+    // (Parámetros de trayectoria ahora en config_)
     bool trajectory_active_ {false};
     rclcpp::Time trajectory_start_time_ {};
 
@@ -452,8 +446,8 @@ private:
 
     // Publica una sola vez una trayectoria a q_target_ similar al nodo ur5_pos
     void publish_initial_joint_position() {
-        if (q_target_.size() != 6) {
-            RCLCPP_ERROR(this->get_logger(), "q_target debe tener 6 elementos, tiene %zu", q_target_.size());
+        if (config_.q_target.size() != 6) {
+            RCLCPP_ERROR(this->get_logger(), "q_target debe tener 6 elementos, tiene %zu", config_.q_target.size());
             return;
         }
         std::string prefix = config_.nmspace.empty() ? std::string("") : (config_.nmspace + std::string("_"));
@@ -461,12 +455,12 @@ private:
         traj.joint_names = {prefix + "shoulder_pan_joint", prefix + "shoulder_lift_joint", prefix + "elbow_joint",
                             prefix + "wrist_1_joint", prefix + "wrist_2_joint", prefix + "wrist_3_joint"};
         trajectory_msgs::msg::JointTrajectoryPoint pt;
-        pt.positions = q_target_;
-        pt.time_from_start = rclcpp::Duration::from_seconds(q_target_time_);
-        RCLCPP_INFO(this->get_logger(), "Target: %f, %f, %f, %f, %f, %f", q_target_[0], q_target_[1], q_target_[2], q_target_[3], q_target_[4], q_target_[5]);
+        pt.positions = config_.q_target;
+        pt.time_from_start = rclcpp::Duration::from_seconds(config_.q_target_time);
+        RCLCPP_INFO(this->get_logger(), "Target: %f, %f, %f, %f, %f, %f", config_.q_target[0], config_.q_target[1], config_.q_target[2], config_.q_target[3], config_.q_target[4], config_.q_target[5]);
         traj.points.push_back(pt);
         joint_trajectory_pub_->publish(traj);
-        RCLCPP_INFO(this->get_logger(), "Movimiento inicial publicado (ur5_pos-like) en %0.2fs", q_target_time_);
+        RCLCPP_INFO(this->get_logger(), "Movimiento inicial publicado (ur5_pos-like) en %0.2fs", config_.q_target_time);
     }
 
     // Tick periódico: publica mientras no detecte movimiento respecto a baseline
@@ -496,7 +490,7 @@ private:
         // Verificar llegada a q_target con histéresis (consecutivo)
         double max_err = 0.0;
         for (int i = 0; i < 6; ++i) {
-            max_err = std::max(max_err, std::abs(robot_state_.q[i] - q_target_[i]));
+            max_err = std::max(max_err, std::abs(robot_state_.q[i] - config_.q_target[i]));
         }
         if (max_err < reach_threshold_rad_) {
             reach_count_++;
@@ -652,7 +646,7 @@ private:
         }
 
         // Si estamos en modo ur5_pos y aún no hay baseline, capturarla cuando llegan los primeros joints
-        if (use_ur5_pos_init_ && !config_.use_geomagic && init_move_active_ && !init_baseline_set_) {
+        if (config_.use_ur5_pos_init && !config_.use_geomagic && init_move_active_ && !init_baseline_set_) {
             for (int i = 0; i < 6; ++i) q_baseline_[i] = robot_state_.q[i];
             init_baseline_set_ = true;
             RCLCPP_INFO(this->get_logger(), "Baseline articular capturada (update_joint_positions).");
@@ -757,14 +751,15 @@ private:
             double t_elapsed = (this->now() - trajectory_start_time_).seconds();
             auto st = TrajectoryGenerator::calculate(
                 cartesian_state_.position_initial,
-                amplitude_vec_,
-                traj_wn_,
-                traj_c0_,
+                config_.traj_A,
+                config_.traj_wn,
+                config_.traj_c0,
                 t_elapsed,
-                traj_mode_
+                config_.traj_mode
             );
-            //x_des = st.position;
-            x_des << -0.03, 0.7, 0.1;
+            x_des = st.position;
+
+            //x_des << -0.03, 0.7, 0.1;
             // Mantener orientación constante
             cartesian_state_.orientation_desired = cartesian_state_.orientation_initial;
         }
@@ -779,20 +774,36 @@ private:
         Eigen::Matrix3d R_des = cartesian_state_.orientation_desired.toRotationMatrix();
         Eigen::Matrix3d R_err = R_meas.transpose() * R_des;
         double e_R_angle = Eigen::AngleAxisd(R_err).angle();
-    // Quaterniones y Euler (roll-pitch-yaw) deseados y medidos
-    Eigen::Quaterniond q_des = cartesian_state_.orientation_desired;
-    Eigen::Quaterniond q_meas(R_meas);
-    Eigen::Vector3d euler_des = R_des.eulerAngles(0, 1, 2); // RPY
-    Eigen::Vector3d euler_meas = R_meas.eulerAngles(0, 1, 2); // RPY
+        // Quaterniones y Euler (roll-pitch-yaw) deseados y medidos
+        Eigen::Quaterniond q_des = cartesian_state_.orientation_desired;
+        Eigen::Quaterniond q_meas(R_meas);
+        Eigen::Vector3d euler_des = R_des.eulerAngles(0, 1, 2); // RPY
+        Eigen::Vector3d euler_meas = R_meas.eulerAngles(0, 1, 2); // RPY
 
         auto ik_t0 = std::chrono::steady_clock::now();
-        robot_state_.q_solution = kinematics_solver_->inverseKinematicsQP(
-            robot_state_.q,
-            x_des,
-            cartesian_state_.orientation_desired,
-            600,
-            0.1
-        );
+
+        if (config_.controller == "QP") {
+
+            robot_state_.q_solution = kinematics_solver_->inverseKinematicsQP(
+                robot_state_.q,
+                x_des,
+                cartesian_state_.orientation_desired,
+                600,
+                0.1
+            );}
+        else if (config_.controller == "IMP") {
+            return;
+        } else if (config_.controller == "SLD") {
+            return;
+        } else {
+            config_.controller = "QP";
+            robot_state_.q_solution = kinematics_solver_->inverseKinematicsQP(
+                robot_state_.q,
+                x_des,
+                cartesian_state_.orientation_desired,
+                600,
+                0.1
+            );}
         last_ik_ms_ = std::chrono::duration_cast<std::chrono::microseconds>(
                            std::chrono::steady_clock::now() - ik_t0)
                            .count() / 1000.0;

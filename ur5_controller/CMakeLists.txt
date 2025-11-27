@@ -18,6 +18,7 @@ find_package(Eigen3 REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(ur5_kinematics REQUIRED)
 find_package(ur5_impedance REQUIRED)
+find_package(ur5_sliding REQUIRED)
 find_package(geomagic_interface REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -46,11 +47,13 @@ ament_target_dependencies(controller_backup
   ament_index_cpp
   ur5_kinematics
   ur5_impedance
+  ur5_sliding
 )
 
 target_link_libraries(controller_backup
   ur5_kinematics::ur5_kinematics
   ur5_impedance::ur5_impedance
+  ur5_sliding::ur5_sliding
 )
 
 install(TARGETS controller_backup

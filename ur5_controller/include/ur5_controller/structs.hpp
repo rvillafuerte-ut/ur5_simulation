@@ -44,20 +44,52 @@ struct HapticState
 // Configuración y parámetros del nodo
 struct NodeConfig
 {
-  std::string control_topic;
-  std::string operation_mode = "teleop";  // "teleop" o "trajectory"
-  std::string ur_model = "ur5";
-  std::string nmspace = "";
-  std::string urdf_path;
-  bool use_geomagic = false;              // Para compatibilidad con controller_backup
-  std::vector<double> trajectory_waypoints;
-  double trajectory_duration = 5.0;
-  double control_frequency = 100.0;
-  double control_loop_time = 0.01; // segundos
-  std::string trayectoria = "cicloide creciente";
-  bool csv_enabled = false;
-  std::string csv_path = "robot_log.csv";
-  std::string csv_prefix = "ur5_log";
+  // ------------------------------------------------------------------
+  // Identificación y namespaces
+  // ------------------------------------------------------------------
+  std::string control_topic = "/joint_trajectory_controller/joint_trajectory"; // Tópico de control articular
+  std::string operation_mode = "teleop";   // "teleop" o "trajectory"
+  std::string ur_model = "ur5";            // Modelo: ur5 / ur5e
+  std::string nmspace = "";                // Namespace (prefijo de joints y tópicos)
+  std::string urdf_path;                    // Ruta absoluta al URDF (se completa en runtime si queda vacío)
+  std::string controller="QP";
+  bool use_geomagic = false;                // Modo teleoperado háptico
+
+  // ------------------------------------------------------------------
+  // Frecuencia y lazo de control
+  // ------------------------------------------------------------------
+  double control_frequency = 100.0;         // Hz (referencial)
+  double control_loop_time = 0.01;          // Segundos para time_from_start de cada punto
+
+  // ------------------------------------------------------------------
+  // Movimiento articular inicial (similar a nodo ur5_pos)
+  // ------------------------------------------------------------------
+  bool use_ur5_pos_init = true;             // Activar secuencia inicial hacia q_target
+  std::vector<double> q_target {1.57, -1.9, 1.7, -1.9, -1.7, 0.0}; // Objetivo articular inicial
+  double q_target_time = 2.0;               // Tiempo para alcanzar objetivo inicial
+
+  // ------------------------------------------------------------------
+  // Trayectoria automática (cuando use_geomagic = false)
+  // Parámetros leídos de ROS params: traj_A, traj_wn, traj_c0, traj_mode
+  // ------------------------------------------------------------------
+  Eigen::Vector3d traj_A {0.05, 0.05, 0.05}; // Amplitudes en metros
+  double traj_wn = 3.14159;                  // Frecuencia natural
+  double traj_c0 = 1.0;                      // Factor de decaimiento
+  int traj_mode = 1;                         // Modo (1 sinusoidal, 2 exponencial, etc.)
+  std::string trayectoria = "cicloide creciente"; // Descripción textual (legacy)
+
+  // ------------------------------------------------------------------
+  // Waypoints de trayectoria personalizada (no implementado aún)
+  // ------------------------------------------------------------------
+  std::vector<double> trajectory_waypoints;  // Reservado para futuras trayectorias definidas por puntos
+  double trajectory_duration = 5.0;          // Duración total de trayectoria de waypoints
+
+  // ------------------------------------------------------------------
+  // CSV Logging
+  // ------------------------------------------------------------------
+  bool csv_enabled = false;                 // Activar log CSV
+  std::string csv_path = "";               // Directorio destino (se completa si vacío)
+  std::string csv_prefix = "ur5_log";       // Prefijo de nombre de archivo
 };
 
 // Recursos de Pinocchio
