@@ -113,12 +113,22 @@ git clone https://github.com/DavidValdezUtec/ur5_simulation.git
 git clone https://github.com/stevens-armlab/Geomagic_Touch_ROS2.git
 # Aquí iría el 'git clone' para el driver del UR si es necesario
 
+# Crea el directorio de includes faltante para omni_common
+mkdir -p ~/tesis_ws/src/ur5_simulation/Geomagic_Touch_ROS2/omni_common/include/omni_common
+
 # Regresa a la raíz del workspace y compila
 cd ~/tesis_ws
-colcon build --symlink-install
+
+# Si tienes conda/miniconda activo, desactívalo primero
+conda deactivate
+
+# Compila con el entorno de ROS 2 correctamente configurado
+source /opt/ros/humble/setup.bash
+export PATH="/usr/bin:$PATH"
+colcon build --allow-overriding ur_controllers ur_dashboard_msgs ur_moveit_config ur_robot_driver
 ```
 **Nota sobre la compilación:** Si encuentras un error de tipo `killed` o `Terminado`, significa que te has quedado sin memoria RAM. Intenta compilar de nuevo usando un solo núcleo:
-`colcon build --parallel-workers 1`
+`colcon build --parallel-workers 1 --allow-overriding ur_controllers ur_dashboard_msgs ur_moveit_config ur_robot_driver`
 
 ### 5. Uso
 
